@@ -6,6 +6,7 @@ create extension if not exists pgcrypto;
 create table if not exists public.dcp_audio_reports (
   id uuid primary key default gen_random_uuid(),
   title text not null,
+  report_type text not null default 'audio' check (report_type in ('audio', 'video')),
   rows jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

@@ -2,7 +2,7 @@
 
 Web app/PWA indipendente per gli strumenti interni di Digital Video Service, coordinata graficamente con DVS Planning e DVS Gestionale.
 
-## Versione 1.3
+## Versione 2.0
 
 - dashboard principale a riquadri in stile DVS liquid glass;
 - navigazione desktop e mobile coordinata;
@@ -18,14 +18,18 @@ Web app/PWA indipendente per gli strumenti interni di Digital Video Service, coo
 - accesso immediato a Carica EDL e Storico DCP;
 - moduli futuri presenti anche nella navigazione laterale;
 - schermata Informazioni coordinata al DVS Planning.
+- Calcolatrice Timecode con 24, 25, 30 e 60 fps, operazioni concatenate, DA–A e cronologia;
+- DCP Video con selezione tracce, elenco alfabetico, ricerca e selezione delle righe;
+- il PDF Video include soltanto le righe selezionate, mentre lo storico conserva l'elenco completo;
+- storico unico con distinzione tra rapporti Audio e Video.
 
 ## Moduli
 
 - **DCP Audio**: disponibile.
-- **DCP Video**: predisposto per una versione successiva.
+- **DCP Video**: disponibile.
 - **Loudness**: predisposto per una versione successiva.
 - **Scheda Tecnica**: predisposto per una versione successiva.
-- **Calcolatrice Timecode**: predisposta per una versione successiva.
+- **Calcolatrice Timecode**: disponibile.
 
 ## Funzionamento DCP Audio
 
@@ -42,9 +46,13 @@ Nel database viene salvato esclusivamente il rapporto DCP elaborato.
 
 ## Database storico
 
-Prima di usare lo storico, eseguire nel SQL Editor dello stesso progetto Supabase usato da Planning e Gestionale:
+Per una nuova installazione, eseguire nel SQL Editor del progetto Supabase dedicato a DVS Utility:
 
 `database/001_dcp_audio_history.sql`
+
+Se la versione Audio era già installata, eseguire una sola volta:
+
+`database/002_dcp_video_history.sql`
 
 ## Avvio locale
 

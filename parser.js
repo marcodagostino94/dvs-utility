@@ -191,13 +191,13 @@ function mergeIntervals(items) {
   return merged;
 }
 
-export function buildAudioReport(parsed, selectedTracks) {
+function buildTrackReport(parsed, selectedTracks, prefix) {
   const selected = new Set(selectedTracks.map(normalizeTrack));
-  const audio = parsed.intervals.filter((item) => item.track.startsWith("A") && selected.has(item.track));
+  const matching = parsed.intervals.filter((item) => item.track.startsWith(prefix) && selected.has(item.track));
 
   // Identical timeline uses on multiple tracks are stereo duplicates.
   const uniqueMap = new Map();
-  for (const item of audio) {
+  for (const item of matching) {
     const key = `${canonicalName(item.name)}|${item.start}|${item.end}|${item.kind}`;
     const existing = uniqueMap.get(key);
     if (existing) {
@@ -265,4 +265,14 @@ export function buildAudioReport(parsed, selectedTracks) {
       tracks: [...item.tracks].sort((a, b) => Number(a.slice(1)) - Number(b.slice(1))),
       hasDissolve: item.hasDissolve,
     }));
+}
+
+export function buildAudioReport(parsed, selectedTracks) {
+  return buildTrackReport(parsed, selectedTracks, "A");
+}
+
+export function buildVideoReport(parsed, selectedTracks) {
+  return buildTrackReport(parsed, selectedTracks, "V")
+    .sort((a, b) => a.name.localeCompare(b.name, "it", { sensitivity: "base", numeric: true }))
+    .map((row, index) => ({ ...row, order: index + 1, selected: false }));
 }

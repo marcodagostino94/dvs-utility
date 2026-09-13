@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { buildAudioReport, parseEdl } from "../parser.js";
+import { buildAudioReport, buildVideoReport, parseEdl } from "../parser.js";
 
 const unitFixture = `TITLE: TEST
 FCM: NON-DROP FRAME
@@ -46,6 +46,25 @@ assert.deepEqual(unitReport.map(({ name, duration }) => [name, duration]), [
   ["DONAY.MP3", "00:00:05:00"],
 ]);
 
+const videoFixture = `TITLE: VIDEO TEST
+FCM: NON-DROP FRAME
+000001  ZEBRA.MOV  V1  C  00:00:00:00 00:00:10:00 01:00:00:00 01:00:10:00
+*FROM CLIP NAME: ZEBRA
+*SOURCE FILE: ZEBRA.MOV
+000002  GETTY_002.JPG  V2  C  00:00:00:00 00:00:05:00 01:00:10:00 01:00:15:00
+*FROM CLIP NAME: GETTY 002
+*SOURCE FILE: GETTY 002.JPG
+000003  ALFA.MOV  V1  C  00:00:00:00 00:00:03:12 01:00:15:00 01:00:18:12
+*FROM CLIP NAME: ALFA
+*SOURCE FILE: ALFA.MOV`;
+const parsedVideo = parseEdl(videoFixture, 25);
+assert.deepEqual(parsedVideo.videoTracks, ["V1", "V2"]);
+assert.deepEqual(buildVideoReport(parsedVideo, ["V1", "V2"]).map(({ name, duration, selected }) => [name, duration, selected]), [
+  ["ALFA.MOV", "00:00:03:12", false],
+  ["GETTY 002.JPG", "00:00:05:00", false],
+  ["ZEBRA.MOV", "00:00:10:00", false],
+]);
+
 const integrationPath = process.env.DVS_EDL_TEST_FILE;
 if (integrationPath && fs.existsSync(integrationPath)) {
   const fixture = fs.readFileSync(integrationPath, "utf8");
@@ -66,4 +85,4 @@ if (integrationPath && fs.existsSync(integrationPath)) {
 
   assert.deepEqual(parsed.audioTracks, ["A1", "A2", "A5", "A6", "A7", "A8"]);
 }
-console.log("Parser DCP Audio: test superato");
+console.log("Parser DCP Audio e Video: test superato");

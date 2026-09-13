@@ -31,10 +31,9 @@
             <span class="nav-icon sound-icon" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
             <span>DCP Audio</span>
           </button>
-          <button class="nav-item disabled" type="button" disabled>
+          <button class="nav-item" id="openVideoNav" type="button">
             <span class="nav-icon video-outline" aria-hidden="true"></span>
             <span>DCP Video</span>
-            <small>Presto</small>
           </button>
           <button class="nav-item disabled" type="button" disabled>
             <span class="nav-icon sound-icon" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
@@ -46,10 +45,9 @@
             <span>Scheda Tecnica</span>
             <small>Presto</small>
           </button>
-          <button class="nav-item disabled" type="button" disabled>
+          <button class="nav-item" id="openCalculatorNav" type="button">
             <span class="nav-icon nav-svg-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="2.5" width="16" height="19" rx="2.5"/><rect x="7" y="5.5" width="10" height="4" rx="1"/><path d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01"/></svg></span>
-            <span>Timecode</span>
-            <small>Presto</small>
+            <span>Calcolatrice Timecode</span>
           </button>
         </nav>
 
@@ -58,7 +56,7 @@
             <span class="nav-icon info-icon" aria-hidden="true">i</span>
             <span>Informazioni</span>
           </button>
-          <span class="build-pill">v1.3</span>
+          <span class="build-pill">v2.0</span>
         </div>
       </aside>
 
@@ -67,7 +65,6 @@
           <img src="./assets/logos/digital-video-full.png" alt="Digital Video" />
           <span id="iphoneSectionTitle">UTILITY</span>
         </button>
-        <span class="mobile-status"><i></i> Locale</span>
       </header>
 
       <main class="main-content">
@@ -90,13 +87,14 @@
                 <span class="card-launch" aria-hidden="true">↗</span>
               </button>
 
-              <div class="utility-card video-card">
-                <span class="availability soon">Prossimamente</span>
+              <button class="utility-card video-card enabled-card" id="openVideo" type="button">
+                <span class="availability"><i></i> Disponibile</span>
                 <span class="card-orb video-orb" aria-hidden="true">
                   <svg viewBox="0 0 64 64"><rect x="10" y="16" width="44" height="32" rx="8" /><path d="m28 25 12 7-12 7z" /></svg>
                 </span>
                 <span class="card-copy"><strong>DCP Video</strong></span>
-              </div>
+                <span class="card-launch" aria-hidden="true">↗</span>
+              </button>
 
               <div class="utility-card future-card">
                 <span class="availability soon">Prossimamente</span>
@@ -114,22 +112,22 @@
                 <span class="card-copy"><strong>Scheda Tecnica</strong></span>
               </div>
 
-              <div class="utility-card future-card">
-                <span class="availability soon">Prossimamente</span>
+              <button class="utility-card future-card enabled-card" id="openCalculator" type="button">
+                <span class="availability"><i></i> Disponibile</span>
                 <span class="card-orb future-orb" aria-hidden="true">
                   <svg viewBox="0 0 64 64"><rect x="14" y="7" width="36" height="50" rx="6"/><rect x="21" y="14" width="22" height="10" rx="2"/><path d="M22 33h.01M32 33h.01M42 33h.01M22 43h.01M32 43h.01M42 43h.01M22 51h.01M32 51h10"/></svg>
                 </span>
                 <span class="card-copy"><strong>Calcolatrice Timecode</strong></span>
-              </div>
+                <span class="card-launch" aria-hidden="true">↗</span>
+              </button>
             </div>
           </div>
         </section>
 
         <section class="view audio-view" id="audioView">
           <header class="module-topbar">
-            <button class="back-button" id="backButton" aria-label="Torna alle utility">‹</button>
+            <button class="back-button hidden" id="backButton" aria-label="Torna a importazione e storico">‹</button>
             <div><span>Utility</span><strong>DCP Audio</strong></div>
-            <span class="secure-label"><i></i> Elaborazione locale</span>
           </header>
 
           <div class="module-content">
@@ -203,10 +201,81 @@
           </div>
         </section>
 
+        <section class="view video-view" id="videoView">
+          <header class="module-topbar">
+            <button class="back-button hidden" id="videoBackButton" aria-label="Torna a importazione e storico">‹</button>
+            <div><span>Utility</span><strong>DCP Video</strong></div>
+          </header>
+          <div class="module-content">
+            <div class="module-heading"><p class="eyebrow">RAPPORTO IMMAGINI</p><h1>DCP Video</h1></div>
+            <div class="audio-entry-grid" id="videoEntryGrid">
+              <section class="panel import-panel" id="videoDropZone">
+                <input id="videoFileInput" type="file" accept=".edl,.txt" hidden />
+                <div class="upload-icon video-upload-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 42V14m0 0L21 25m11-11 11 11"/><path d="M14 38v8a6 6 0 0 0 6 6h24a6 6 0 0 0 6-6v-8"/></svg></div>
+                <div><h2>Carica il file EDL</h2><p>Trascinalo qui oppure selezionalo dal Mac.</p></div>
+                <button class="primary-button" id="videoBrowseButton">Scegli file</button>
+                <p class="privacy-note"><span>✓</span> Il file EDL non viene salvato</p>
+              </section>
+              <button class="panel history-entry-card" id="openVideoHistoryButton" type="button">
+                <span class="history-entry-top"><small>ARCHIVIO</small><span class="history-card-icon" aria-hidden="true">↺</span></span>
+                <span class="history-entry-copy"><strong>Storico DCP</strong><em>Apri i rapporti Audio e Video già salvati.</em></span>
+                <b aria-hidden="true">›</b>
+              </button>
+            </div>
+            <section class="workspace hidden" id="videoWorkspace">
+              <div class="file-summary panel" id="videoFileSummary">
+                <div class="file-badge">EDL</div><div class="file-meta"><strong id="videoFileName">—</strong><span id="videoFileDetails">—</span></div>
+                <button class="secondary-button" id="videoChangeFile">Cambia file</button>
+              </div>
+              <section class="panel controls-panel" id="videoControls">
+                <div class="panel-title-row"><div><p class="step-label">PASSAGGIO 1</p><h2>Tracce video</h2></div><button class="text-button" id="toggleVideoTracks">Deseleziona tutte</button></div>
+                <p class="muted">Di default sono selezionate tutte le tracce video rilevate.</p>
+                <div class="track-grid" id="videoTrackGrid"></div>
+                <div class="divider"></div><p class="step-label">PASSAGGIO 2</p><h2>Genera elenco</h2>
+                <button class="primary-button wide" id="generateVideoButton">Elabora DCP Video</button>
+              </section>
+              <section class="panel results-panel hidden" id="videoResultsPanel">
+                <div class="results-header">
+                  <div class="result-title-area"><p class="step-label">RAPPORTO IMMAGINI</p><input id="videoResultTitle" class="report-title-input" value="Risultato" aria-label="Titolo DCP Video"><p class="muted" id="videoResultSummary"></p></div>
+                  <div class="result-actions">
+                    <button class="secondary-button" id="newVideoDcpButton">Nuovo DCP</button><button class="save-button" id="saveVideoButton">Salva DCP</button><button class="primary-button" id="videoPdfButton">PDF</button><button class="danger-button hidden" id="deleteVideoDcpButton">Elimina DCP</button>
+                  </div>
+                </div>
+                <div class="video-filter-bar">
+                  <label class="video-search"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><input id="videoSearchInput" type="search" placeholder="Cerca, ad esempio Getty"><button id="clearVideoSearch" type="button" aria-label="Cancella ricerca">×</button></label>
+                  <button class="secondary-button" id="selectVisibleVideo">Seleziona tutte</button><button class="text-button" id="deselectVisibleVideo">Deseleziona visibili</button>
+                </div>
+                <div class="empty-result hidden" id="emptyVideoResult">Nessuna clip trovata.</div>
+                <div class="table-wrap" id="videoTableWrap"><table><thead><tr><th class="select-column"><span class="sr-only">Seleziona</span></th><th class="number-column">N.</th><th>Nome clip</th><th class="duration-column">Durata</th><th class="action-column"><span class="sr-only">Azioni</span></th></tr></thead><tbody id="videoResultBody"></tbody></table></div>
+              </section>
+            </section>
+          </div>
+        </section>
+
+        <section class="view calculator-view" id="calculatorView">
+          <header class="module-topbar"><div><span>Utility</span><strong>Calcolatrice Timecode</strong></div></header>
+          <div class="module-content calculator-content">
+            <div class="module-heading"><p class="eyebrow">TIMECODE</p><h1>Calcolatrice</h1></div>
+            <section class="fps-panel panel"><span>Frame rate</span><div class="fps-selector" id="fpsSelector"><button data-fps="24">24</button><button class="active" data-fps="25">25</button><button data-fps="30">30</button><button data-fps="60">60</button></div><strong id="fpsLabel">25 fps</strong></section>
+            <div class="calculator-layout">
+              <section class="calculator-panel panel">
+                <div class="calculator-expression" id="calculatorExpression">Inserisci un timecode</div><output class="calculator-display" id="calculatorDisplay">00:00:00:00</output>
+                <div class="calculator-keypad" id="calculatorKeypad">
+                  <button class="calc-function" data-action="clear">AC</button><button class="calc-function" data-action="backspace">⌫</button><button class="calc-range" data-action="range">DA–A</button><button class="calc-operator" data-action="subtract">−</button>
+                  <button data-digit="7">7</button><button data-digit="8">8</button><button data-digit="9">9</button><button class="calc-operator" data-action="add">+</button>
+                  <button data-digit="4">4</button><button data-digit="5">5</button><button data-digit="6">6</button><button class="calc-equals" data-action="equals">=</button>
+                  <button data-digit="1">1</button><button data-digit="2">2</button><button data-digit="3">3</button><button data-digit="0" class="calc-zero">0</button>
+                </div>
+              </section>
+              <section class="calculator-history panel"><div class="calculator-history-head"><div><p class="step-label">OPERAZIONI</p><h2>Cronologia</h2></div><button class="text-button" id="clearCalculatorHistory">Svuota</button></div><div id="calculatorHistoryList" class="calculator-history-list"><p class="calculator-empty">Le operazioni compariranno qui.</p></div></section>
+            </div>
+          </div>
+        </section>
+
         <section class="view history-view" id="historyView">
           <header class="module-topbar">
-            <button class="back-button" id="historyBackButton" aria-label="Torna a DCP Audio">‹</button>
-            <div><span>DCP Audio</span><strong>Storico DCP</strong></div>
+            <button class="back-button" id="historyBackButton" aria-label="Torna indietro">‹</button>
+            <div><span>Utility</span><strong>Storico DCP</strong></div>
             <span class="secure-label"><i></i> Database DVS</span>
           </header>
           <div class="module-content">
@@ -214,7 +283,7 @@
               <p class="eyebrow">ARCHIVIO</p><h1>Storico DCP</h1>
             </div>
             <section class="panel history-panel">
-              <div class="history-toolbar"><button class="secondary-button" id="historyBackInline">‹ Torna a DCP Audio</button><button class="primary-button" id="historyNewDcp">+ Nuovo DCP</button></div>
+              <div class="history-toolbar"><button class="secondary-button" id="historyBackInline">‹ Torna indietro</button><button class="primary-button" id="historyNewDcp">+ Nuovo DCP Audio</button></div>
               <div class="history-list" id="historyList"></div>
               <div class="empty-result hidden" id="emptyHistory">Non ci sono ancora DCP salvati.</div>
             </section>
@@ -230,7 +299,7 @@
               <h2>DVS Utility</h2>
               <p>Applicazione per gli strumenti tecnici di Digital Video Service.</p>
               <dl>
-                <div><dt>Versione</dt><dd>v1.3</dd></div>
+                <div><dt>Versione</dt><dd>v2.0</dd></div>
                 <div><dt>Ideazione e sviluppo</dt><dd>Marco D'Agostino per Digital Video Service</dd></div>
                 <div><dt>Sincronizzazione</dt><dd>Supabase Database</dd></div>
               </dl>
@@ -244,7 +313,8 @@
         <span class="iphone-nav-indicator" id="iphoneNavIndicator"></span>
         <button class="active" id="iphoneHomeNav"><span class="nav-icon grid-icon"><i></i><i></i><i></i><i></i></span><small>Utility</small></button>
         <button id="iphoneAudioNav"><span class="nav-icon sound-icon"><i></i><i></i><i></i><i></i></span><small>DCP Audio</small></button>
-        <button disabled><span class="nav-icon video-outline"></span><small>DCP Video</small></button>
+        <button id="iphoneVideoNav"><span class="nav-icon video-outline"></span><small>DCP Video</small></button>
+        <button id="iphoneCalculatorNav"><span class="nav-icon nav-svg-icon"><svg viewBox="0 0 24 24"><rect x="4" y="2.5" width="16" height="19" rx="2.5"/><rect x="7" y="5.5" width="10" height="4" rx="1"/><path d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01"/></svg></span><small>Timecode</small></button>
       </nav>
     </div>
 
