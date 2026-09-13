@@ -1,6 +1,14 @@
 # DVS Utility
 
-Web app/PWA indipendente per gli strumenti interni di Digital Video Service.
+Web app/PWA indipendente per gli strumenti interni di Digital Video Service, coordinata graficamente con DVS Planning e DVS Gestionale.
+
+## Versione 1.1
+
+- dashboard principale a riquadri in stile DVS liquid glass;
+- navigazione desktop e mobile coordinata;
+- logo Digital Video originale;
+- icona Utility con bagliore verde;
+- modulo DCP Audio invariato nella logica e ottimizzato per Mac, iPhone e iPad.
 
 ## Moduli
 

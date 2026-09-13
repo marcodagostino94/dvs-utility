@@ -1,5 +1,15 @@
-const CACHE = "dvs-utility-v1";
-const ASSETS = ["./", "./index.html", "./styles.css", "./app.js", "./parser.js", "./manifest.webmanifest", "./icon.svg"];
+const CACHE = "dvs-utility-v1.1";
+const ASSETS = [
+  "./",
+  "./index.html",
+  "./styles.css",
+  "./app.js",
+  "./parser.js",
+  "./manifest.webmanifest",
+  "./assets/logos/digital-video-full.png",
+  "./assets/icons/dvs-utility-192.png",
+  "./assets/icons/dvs-utility-512.png"
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)));

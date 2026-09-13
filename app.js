@@ -11,6 +11,11 @@ const trackGrid = $("#trackGrid");
 const resultBody = $("#resultBody");
 const tableWrap = $("#tableWrap");
 const emptyResult = $("#emptyResult");
+const desktopHomeNav = $("#openHomeNav");
+const desktopAudioNav = $("#openAudioNav");
+const mobileHomeNav = $("#iphoneHomeNav");
+const mobileAudioNav = $("#iphoneAudioNav");
+const mobileNav = $(".iphone-bottom-nav");
 
 let parsedEdl = null;
 let currentFile = null;
@@ -18,8 +23,15 @@ let selectedTracks = new Set();
 let reportRows = [];
 
 function showView(view) {
-  homeView.classList.toggle("active", view === "home");
-  audioView.classList.toggle("active", view === "audio");
+  const isAudio = view === "audio";
+  homeView.classList.toggle("active", !isAudio);
+  audioView.classList.toggle("active", isAudio);
+  desktopHomeNav.classList.toggle("active", !isAudio);
+  desktopAudioNav.classList.toggle("active", isAudio);
+  mobileHomeNav.classList.toggle("active", !isAudio);
+  mobileAudioNav.classList.toggle("active", isAudio);
+  mobileNav.classList.toggle("audio-active", isAudio);
+  $("#iphoneSectionTitle").textContent = isAudio ? "DCP AUDIO" : "UTILITY";
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -165,7 +177,12 @@ function downloadCsv() {
 }
 
 $("#openAudio").addEventListener("click", () => showView("audio"));
+desktopAudioNav.addEventListener("click", () => showView("audio"));
+mobileAudioNav.addEventListener("click", () => showView("audio"));
+desktopHomeNav.addEventListener("click", () => showView("home"));
+mobileHomeNav.addEventListener("click", () => showView("home"));
 $("#homeButton").addEventListener("click", () => showView("home"));
+$("#iphoneBrand").addEventListener("click", () => showView("home"));
 $("#backButton").addEventListener("click", () => showView("home"));
 $("#browseButton").addEventListener("click", () => fileInput.click());
 $("#changeFile").addEventListener("click", () => fileInput.click());
