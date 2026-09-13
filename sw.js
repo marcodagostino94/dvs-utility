@@ -1,9 +1,10 @@
-const CACHE = "dvs-utility-v1.1";
+const CACHE = "dvs-utility-v1.2";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
+  "./config.js",
   "./parser.js",
   "./manifest.webmanifest",
   "./assets/logos/digital-video-full.png",

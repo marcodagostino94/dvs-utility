@@ -3,6 +3,7 @@ import { buildAudioReport, parseEdl } from "./parser.js";
 const $ = (selector) => document.querySelector(selector);
 const homeView = $("#homeView");
 const audioView = $("#audioView");
+const historyView = $("#historyView");
 const fileInput = $("#fileInput");
 const dropZone = $("#dropZone");
 const workspace = $("#workspace");
@@ -11,27 +12,28 @@ const trackGrid = $("#trackGrid");
 const resultBody = $("#resultBody");
 const tableWrap = $("#tableWrap");
 const emptyResult = $("#emptyResult");
-const desktopHomeNav = $("#openHomeNav");
-const desktopAudioNav = $("#openAudioNav");
-const mobileHomeNav = $("#iphoneHomeNav");
-const mobileAudioNav = $("#iphoneAudioNav");
 const mobileNav = $(".iphone-bottom-nav");
+const hasDatabase = Boolean(window.DVS_SUPABASE?.url && window.DVS_SUPABASE?.publishableKey && window.supabase?.createClient);
+const db = hasDatabase ? window.supabase.createClient(window.DVS_SUPABASE.url, window.DVS_SUPABASE.publishableKey) : null;
 
 let parsedEdl = null;
 let currentFile = null;
 let selectedTracks = new Set();
 let reportRows = [];
+let currentSavedId = null;
 
 function showView(view) {
+  const isHome = view === "home";
   const isAudio = view === "audio";
-  homeView.classList.toggle("active", !isAudio);
+  homeView.classList.toggle("active", isHome);
   audioView.classList.toggle("active", isAudio);
-  desktopHomeNav.classList.toggle("active", !isAudio);
-  desktopAudioNav.classList.toggle("active", isAudio);
-  mobileHomeNav.classList.toggle("active", !isAudio);
-  mobileAudioNav.classList.toggle("active", isAudio);
-  mobileNav.classList.toggle("audio-active", isAudio);
-  $("#iphoneSectionTitle").textContent = isAudio ? "DCP AUDIO" : "UTILITY";
+  historyView.classList.toggle("active", view === "history");
+  $("#openHomeNav").classList.toggle("active", isHome);
+  $("#openAudioNav").classList.toggle("active", !isHome);
+  $("#iphoneHomeNav").classList.toggle("active", isHome);
+  $("#iphoneAudioNav").classList.toggle("active", !isHome);
+  mobileNav.classList.toggle("audio-active", !isHome);
+  $("#iphoneSectionTitle").textContent = view === "history" ? "STORICO DCP" : isAudio ? "DCP AUDIO" : "UTILITY";
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -40,12 +42,34 @@ function toast(message) {
   element.textContent = message;
   element.classList.add("show");
   window.clearTimeout(toast.timer);
-  toast.timer = window.setTimeout(() => element.classList.remove("show"), 1800);
+  toast.timer = window.setTimeout(() => element.classList.remove("show"), 2300);
 }
 
 function savedTracks() {
   try { return JSON.parse(localStorage.getItem("dvs-audio-tracks") || "[]"); }
   catch { return []; }
+}
+
+function cleanStoredRows(rows) {
+  return (Array.isArray(rows) ? rows : []).map((row, index) => ({
+    id: row.id || `saved-${index}-${Date.now()}`,
+    name: String(row.name || "Musica senza nome"),
+    duration: String(row.duration || "00:00:00:00"),
+    frames: Number(row.frames || 0)
+  }));
+}
+
+function reportPayload() {
+  return {
+    title: $("#resultTitle").value.trim() || "DCP Audio senza titolo",
+    rows: reportRows.map(({ name, duration, frames }) => ({ name, duration, frames }))
+  };
+}
+
+function setSavedState(id = null) {
+  currentSavedId = id;
+  $("#saveButton").textContent = id ? "Aggiorna DCP" : "Salva DCP";
+  $("#deleteDcpButton").classList.toggle("hidden", !id);
 }
 
 function renderTracks() {
@@ -68,16 +92,9 @@ function renderTracks() {
 }
 
 async function loadFile(file) {
-  if (!file || !/\.(edl|txt)$/i.test(file.name)) {
-    toast("Seleziona un file EDL valido");
-    return;
-  }
-  const text = await file.text();
-  const parsed = parseEdl(text, 25);
-  if (!parsed.intervals.length) {
-    toast("Nessun evento leggibile nell’EDL");
-    return;
-  }
+  if (!file || !/\.(edl|txt)$/i.test(file.name)) return toast("Seleziona un file EDL valido");
+  const parsed = parseEdl(await file.text(), 25);
+  if (!parsed.intervals.length) return toast("Nessun evento leggibile nell’EDL");
   currentFile = file;
   parsedEdl = parsed;
   const previous = savedTracks().filter((track) => parsed.audioTracks.includes(track));
@@ -86,7 +103,10 @@ async function loadFile(file) {
   $("#fileDetails").textContent = `${parsed.title || "Sequenza Avid"} · ${parsed.audioTracks.length} tracce audio · ${parsed.videoTracks.length} tracce video rilevate`;
   dropZone.classList.add("hidden");
   workspace.classList.remove("hidden");
+  $(".file-summary").classList.remove("hidden");
+  $(".two-column").classList.remove("hidden");
   resultsPanel.classList.add("hidden");
+  setSavedState();
   renderTracks();
 }
 
@@ -94,110 +114,164 @@ function renderResults() {
   resultBody.replaceChildren();
   reportRows.forEach((row, index) => {
     const tr = document.createElement("tr");
-    tr.dataset.id = row.id;
-
     const order = document.createElement("td");
     order.className = "number-column";
     order.textContent = String(index + 1);
-
     const nameCell = document.createElement("td");
     nameCell.className = "file-name-cell";
     const input = document.createElement("input");
     input.className = "file-name-input";
     input.value = row.name;
     input.setAttribute("aria-label", `Nome musica ${index + 1}`);
-    input.addEventListener("change", () => { row.name = input.value.trim() || row.name; });
+    input.addEventListener("input", () => { row.name = input.value; });
+    input.addEventListener("blur", () => { row.name = input.value.trim() || "Musica senza nome"; input.value = row.name; });
     nameCell.append(input);
-
-    const tracksCell = document.createElement("td");
-    const tags = document.createElement("div");
-    tags.className = "track-tags";
-    row.tracks.forEach((track) => {
-      const tag = document.createElement("span");
-      tag.className = "track-tag";
-      tag.textContent = track;
-      tags.append(tag);
-    });
-    tracksCell.append(tags);
-
     const duration = document.createElement("td");
     duration.className = "duration-column";
     duration.textContent = row.duration;
-
     const action = document.createElement("td");
     action.className = "action-column";
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "remove-button";
     remove.textContent = "×";
-    remove.title = "Escludi dal rapporto";
-    remove.addEventListener("click", () => {
-      reportRows = reportRows.filter((item) => item.id !== row.id);
-      renderResults();
-    });
+    remove.title = "Elimina questa musica";
+    remove.addEventListener("click", () => { reportRows = reportRows.filter((item) => item.id !== row.id); renderResults(); });
     action.append(remove);
-    tr.append(order, nameCell, tracksCell, duration, action);
+    tr.append(order, nameCell, duration, action);
     resultBody.append(tr);
   });
-
   $("#resultSummary").textContent = `${reportRows.length} ${reportRows.length === 1 ? "utilizzo musicale" : "utilizzi musicali"} · Timecode 25 fps`;
   emptyResult.classList.toggle("hidden", reportRows.length > 0);
   tableWrap.classList.toggle("hidden", reportRows.length === 0);
 }
 
 function generateReport() {
-  if (!selectedTracks.size) {
-    toast("Seleziona almeno una traccia musicale");
-    return;
-  }
+  if (!selectedTracks.size) return toast("Seleziona almeno una traccia musicale");
   reportRows = buildAudioReport(parsedEdl, [...selectedTracks]);
-  $("#resultTitle").textContent = parsedEdl.title || currentFile.name.replace(/\.[^.]+$/, "");
+  $("#resultTitle").value = parsedEdl.title || currentFile.name.replace(/\.[^.]+$/, "");
+  setSavedState();
   renderResults();
   resultsPanel.classList.remove("hidden");
   resultsPanel.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+function newDcp() {
+  parsedEdl = null;
+  currentFile = null;
+  reportRows = [];
+  selectedTracks = new Set();
+  fileInput.value = "";
+  dropZone.classList.remove("hidden");
+  workspace.classList.add("hidden");
+  resultsPanel.classList.add("hidden");
+  setSavedState();
+  showView("audio");
+}
+
 function currentText() {
-  return reportRows.map((row, index) => `${index + 1}. ${row.name} — ${row.duration}`).join("\n");
+  return `${$("#resultTitle").value.trim()}\n\n${reportRows.map((row, index) => `${index + 1}. ${row.name} — ${row.duration}`).join("\n")}`;
 }
 
 function downloadCsv() {
-  const rows = [
-    ["N.", "File musicale", "Tracce", "Durata (25 fps)"],
-    ...reportRows.map((row, index) => [index + 1, row.name, row.tracks.join(" / "), row.duration]),
-  ];
+  const rows = [["N.", "File musicale", "Durata (25 fps)"], ...reportRows.map((row, index) => [index + 1, row.name, row.duration])];
   const csv = rows.map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(";")).join("\r\n");
-  const blob = new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
+  const url = URL.createObjectURL(new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" }));
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `${parsedEdl.title || "DCP-Audio"}.csv`.replace(/[\\/:*?"<>|]/g, "-");
+  anchor.download = `${$("#resultTitle").value.trim() || "DCP-Audio"}.csv`.replace(/[\\/:*?"<>|]/g, "-");
   anchor.click();
   URL.revokeObjectURL(url);
 }
 
+async function saveDcp() {
+  if (!db) { toast("Database non configurato"); return false; }
+  if (!reportRows.length) { toast("Non ci sono righe da salvare"); return false; }
+  const payload = reportPayload();
+  $("#saveButton").disabled = true;
+  try {
+    const wasExisting = Boolean(currentSavedId);
+    const result = wasExisting
+      ? await db.from("dcp_audio_reports").update(payload).eq("id", currentSavedId).select("id").single()
+      : await db.from("dcp_audio_reports").insert(payload).select("id").single();
+    if (result.error) throw result.error;
+    setSavedState(result.data.id);
+    toast(wasExisting ? "DCP aggiornato nello storico" : "DCP salvato nello storico");
+    return true;
+  } catch (error) {
+    toast(error.code === "42P01" ? "Esegui prima lo script database della v1.2" : `Salvataggio non riuscito: ${error.message}`);
+    return false;
+  } finally { $("#saveButton").disabled = false; }
+}
+
+async function saveAndOpenPdf() {
+  const saved = await saveDcp();
+  if (!saved) return;
+  window.setTimeout(() => window.print(), 180);
+}
+
+function formatDate(value) {
+  return new Intl.DateTimeFormat("it-IT", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+}
+
+async function loadHistory() {
+  showView("history");
+  const list = $("#historyList");
+  list.innerHTML = '<div class="history-loading">Caricamento storico…</div>';
+  $("#emptyHistory").classList.add("hidden");
+  if (!db) { list.innerHTML = '<div class="history-error">Database non configurato.</div>'; return; }
+  const { data, error } = await db.from("dcp_audio_reports").select("id,title,rows,created_at,updated_at").order("updated_at", { ascending: false });
+  if (error) { list.innerHTML = `<div class="history-error">Storico non disponibile: ${error.code === "42P01" ? "esegui lo script database della v1.2" : error.message}</div>`; return; }
+  list.replaceChildren();
+  $("#emptyHistory").classList.toggle("hidden", data.length > 0);
+  data.forEach((item) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "history-row";
+    button.innerHTML = `<span class="history-row-icon">DCP</span><span><strong></strong><small></small></span><em></em><b>›</b>`;
+    button.querySelector("strong").textContent = item.title;
+    button.querySelector("small").textContent = `${Array.isArray(item.rows) ? item.rows.length : 0} musiche · Aggiornato ${formatDate(item.updated_at)}`;
+    button.querySelector("em").textContent = formatDate(item.created_at);
+    button.addEventListener("click", () => openSavedDcp(item));
+    list.append(button);
+  });
+}
+
+function openSavedDcp(item) {
+  reportRows = cleanStoredRows(item.rows);
+  $("#resultTitle").value = item.title;
+  dropZone.classList.add("hidden");
+  workspace.classList.remove("hidden");
+  $(".file-summary").classList.add("hidden");
+  $(".two-column").classList.add("hidden");
+  resultsPanel.classList.remove("hidden");
+  renderResults();
+  setSavedState(item.id);
+  showView("audio");
+}
+
+async function deleteCurrentDcp() {
+  if (!currentSavedId || !confirm(`Eliminare definitivamente “${$("#resultTitle").value.trim()}” dallo storico?`)) return;
+  const { error } = await db.from("dcp_audio_reports").delete().eq("id", currentSavedId);
+  if (error) return toast(`Eliminazione non riuscita: ${error.message}`);
+  toast("DCP eliminato dallo storico");
+  newDcp();
+}
+
 $("#openAudio").addEventListener("click", () => showView("audio"));
-desktopAudioNav.addEventListener("click", () => showView("audio"));
-mobileAudioNav.addEventListener("click", () => showView("audio"));
-desktopHomeNav.addEventListener("click", () => showView("home"));
-mobileHomeNav.addEventListener("click", () => showView("home"));
+$("#openAudioNav").addEventListener("click", () => showView("audio"));
+$("#iphoneAudioNav").addEventListener("click", () => showView("audio"));
+$("#openHomeNav").addEventListener("click", () => showView("home"));
+$("#iphoneHomeNav").addEventListener("click", () => showView("home"));
 $("#homeButton").addEventListener("click", () => showView("home"));
 $("#iphoneBrand").addEventListener("click", () => showView("home"));
 $("#backButton").addEventListener("click", () => showView("home"));
 $("#browseButton").addEventListener("click", () => fileInput.click());
 $("#changeFile").addEventListener("click", () => fileInput.click());
 fileInput.addEventListener("change", () => loadFile(fileInput.files[0]));
-
-["dragenter", "dragover"].forEach((eventName) => dropZone.addEventListener(eventName, (event) => {
-  event.preventDefault();
-  dropZone.classList.add("dragover");
-}));
-["dragleave", "drop"].forEach((eventName) => dropZone.addEventListener(eventName, (event) => {
-  event.preventDefault();
-  dropZone.classList.remove("dragover");
-}));
+["dragenter", "dragover"].forEach((name) => dropZone.addEventListener(name, (event) => { event.preventDefault(); dropZone.classList.add("dragover"); }));
+["dragleave", "drop"].forEach((name) => dropZone.addEventListener(name, (event) => { event.preventDefault(); dropZone.classList.remove("dragover"); }));
 dropZone.addEventListener("drop", (event) => loadFile(event.dataTransfer.files[0]));
-
 $("#toggleTracks").addEventListener("click", () => {
   const allSelected = parsedEdl.audioTracks.every((track) => selectedTracks.has(track));
   selectedTracks = new Set(allSelected ? [] : parsedEdl.audioTracks);
@@ -205,12 +279,16 @@ $("#toggleTracks").addEventListener("click", () => {
   renderTracks();
 });
 $("#generateButton").addEventListener("click", generateReport);
-$("#copyButton").addEventListener("click", async () => {
-  await navigator.clipboard.writeText(currentText());
-  toast("Elenco copiato");
-});
+$("#copyButton").addEventListener("click", async () => { await navigator.clipboard.writeText(currentText()); toast("Elenco copiato"); });
 $("#csvButton").addEventListener("click", downloadCsv);
-$("#printButton").addEventListener("click", () => window.print());
+$("#printButton").addEventListener("click", saveAndOpenPdf);
+$("#saveButton").addEventListener("click", saveDcp);
+$("#newDcpButton").addEventListener("click", newDcp);
+$("#deleteDcpButton").addEventListener("click", deleteCurrentDcp);
+$("#openHistoryButton").addEventListener("click", loadHistory);
+$("#historyBackButton").addEventListener("click", () => showView("audio"));
+$("#historyBackInline").addEventListener("click", () => showView("audio"));
+$("#historyNewDcp").addEventListener("click", newDcp);
 
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js"));

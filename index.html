@@ -9,6 +9,8 @@
     <link rel="icon" href="./assets/icons/dvs-utility-64.png" type="image/png" />
     <link rel="apple-touch-icon" href="./assets/icons/dvs-utility-180.png" />
     <link rel="stylesheet" href="./styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./config.js"></script>
     <title>DVS Utility</title>
   </head>
   <body>
@@ -36,11 +38,12 @@
           </button>
         </nav>
 
-        <div class="local-status">
-          <span class="status-dot"></span>
-          <span><strong>Elaborazione locale</strong><small>I file restano sul dispositivo</small></span>
+        <div class="sidebar-information">
+          <strong>Informazioni</strong>
+          <span>DVS Utility · v1.2</span>
+          <small>Ideazione e sviluppo<br>Marco D'Agostino per Digital Video Service</small>
         </div>
-        <p class="sidebar-footer">© Digital Video Service</p>
+        <p class="sidebar-footer">© 2026 · Tutti i diritti riservati</p>
       </aside>
 
       <header class="iphone-topbar">
@@ -59,7 +62,6 @@
             <div class="hero">
               <p class="eyebrow">DVS UTILITY</p>
               <h1>I tuoi strumenti</h1>
-              <p>Scegli l’utility da utilizzare. Ogni elaborazione avviene direttamente su questo dispositivo.</p>
             </div>
 
             <div class="utility-grid">
@@ -68,7 +70,7 @@
                 <span class="card-orb audio-orb" aria-hidden="true">
                   <svg viewBox="0 0 64 64"><path d="M13 38V26m8 19V19m8 31V14m8 32V18m8 22V24m8 12v-8" /></svg>
                 </span>
-                <span class="card-copy"><strong>DCP Audio</strong><small>Rapporto musicale da EDL Avid</small></span>
+                <span class="card-copy"><strong>DCP Audio</strong></span>
                 <span class="card-launch" aria-hidden="true">↗</span>
               </button>
 
@@ -77,12 +79,31 @@
                 <span class="card-orb video-orb" aria-hidden="true">
                   <svg viewBox="0 0 64 64"><rect x="10" y="16" width="44" height="32" rx="8" /><path d="m28 25 12 7-12 7z" /></svg>
                 </span>
-                <span class="card-copy"><strong>DCP Video</strong><small>Immagini, foto e repertorio</small></span>
+                <span class="card-copy"><strong>DCP Video</strong></span>
               </div>
 
-              <div class="utility-card placeholder-card" aria-hidden="true">
-                <span class="plus-orb">+</span>
-                <span class="card-copy"><strong>Nuova utility</strong><small>Spazio pronto per il prossimo strumento</small></span>
+              <div class="utility-card future-card">
+                <span class="availability soon">Prossimamente</span>
+                <span class="card-orb future-orb" aria-hidden="true">
+                  <svg viewBox="0 0 64 64"><path d="M10 32h7l4-16 8 32 7-25 6 18 5-9h7" /></svg>
+                </span>
+                <span class="card-copy"><strong>Loudness</strong></span>
+              </div>
+
+              <div class="utility-card future-card">
+                <span class="availability soon">Prossimamente</span>
+                <span class="card-orb future-orb" aria-hidden="true">
+                  <svg viewBox="0 0 64 64"><path d="M18 10h22l8 8v36H18z" /><path d="M40 10v10h10M25 30h16M25 38h16M25 46h10" /></svg>
+                </span>
+                <span class="card-copy"><strong>Scheda Tecnica</strong></span>
+              </div>
+
+              <div class="utility-card future-card">
+                <span class="availability soon">Prossimamente</span>
+                <span class="card-orb future-orb" aria-hidden="true">
+                  <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="22" /><path d="M32 19v14l10 6M20 12l-6 6M44 12l6 6" /></svg>
+                </span>
+                <span class="card-copy"><strong>Calcolatrice Timecode</strong></span>
               </div>
             </div>
           </div>
@@ -99,7 +120,6 @@
             <div class="module-heading">
               <p class="eyebrow">RAPPORTO MUSICALE</p>
               <h1>DCP Audio</h1>
-              <p>Importa l’EDL completo, scegli le tracce musicali e genera il rapporto pronto per il DCP.</p>
             </div>
 
             <section class="panel import-panel" id="dropZone">
@@ -133,35 +153,51 @@
                   <button class="primary-button wide" id="generateButton">Elabora DCP Audio</button>
                 </section>
 
-                <section class="panel info-panel">
-                  <p class="step-label">REGOLE APPLICATE</p>
-                  <ul>
-                    <li><span>✓</span> Coppie stereo conteggiate una volta</li>
-                    <li><span>✓</span> Tracce mono mantenute</li>
-                    <li><span>✓</span> Dissolvenze incluse</li>
-                    <li><span>✓</span> Pause senza musica accorpate</li>
-                    <li><span>✓</span> Nuovo record dopo un’altra musica</li>
-                  </ul>
-                </section>
+                <button class="panel history-entry-card" id="openHistoryButton" type="button">
+                  <span class="history-card-icon" aria-hidden="true">↺</span>
+                  <span><small>ARCHIVIO</small><strong>Storico DCP</strong><em>Apri, modifica, ristampa o elimina i rapporti salvati.</em></span>
+                  <b aria-hidden="true">›</b>
+                </button>
               </div>
 
               <section class="panel results-panel hidden" id="resultsPanel">
                 <div class="results-header">
-                  <div><p class="step-label">RAPPORTO MUSICALE</p><h2 id="resultTitle">Risultato</h2><p class="muted" id="resultSummary"></p></div>
+                  <div class="result-title-area"><p class="step-label">RAPPORTO MUSICALE</p><input id="resultTitle" class="report-title-input" value="Risultato" aria-label="Titolo DCP"><p class="muted" id="resultSummary"></p></div>
                   <div class="result-actions">
+                    <button class="secondary-button" id="newDcpButton">Nuovo DCP</button>
+                    <button class="save-button" id="saveButton">Salva DCP</button>
                     <button class="secondary-button" id="copyButton">Copia elenco</button>
                     <button class="secondary-button" id="csvButton">Esporta CSV</button>
-                    <button class="primary-button" id="printButton">Stampa / PDF</button>
+                    <button class="primary-button" id="printButton">PDF</button>
+                    <button class="danger-button hidden" id="deleteDcpButton">Elimina DCP</button>
                   </div>
                 </div>
                 <div class="empty-result hidden" id="emptyResult">Nessuna musica trovata nelle tracce selezionate.</div>
                 <div class="table-wrap" id="tableWrap">
                   <table>
-                    <thead><tr><th class="number-column">N.</th><th>File musicale</th><th>Tracce</th><th class="duration-column">Durata</th><th class="action-column"><span class="sr-only">Azioni</span></th></tr></thead>
+                    <thead><tr><th class="number-column">N.</th><th>File musicale</th><th class="duration-column">Durata</th><th class="action-column"><span class="sr-only">Azioni</span></th></tr></thead>
                     <tbody id="resultBody"></tbody>
                   </table>
                 </div>
               </section>
+            </section>
+          </div>
+        </section>
+
+        <section class="view history-view" id="historyView">
+          <header class="module-topbar">
+            <button class="back-button" id="historyBackButton" aria-label="Torna a DCP Audio">‹</button>
+            <div><span>DCP Audio</span><strong>Storico DCP</strong></div>
+            <span class="secure-label"><i></i> Database DVS</span>
+          </header>
+          <div class="module-content">
+            <div class="module-heading history-heading">
+              <p class="eyebrow">ARCHIVIO</p><h1>Storico DCP</h1>
+            </div>
+            <section class="panel history-panel">
+              <div class="history-toolbar"><button class="secondary-button" id="historyBackInline">‹ Torna a DCP Audio</button><button class="primary-button" id="historyNewDcp">+ Nuovo DCP</button></div>
+              <div class="history-list" id="historyList"></div>
+              <div class="empty-result hidden" id="emptyHistory">Non ci sono ancora DCP salvati.</div>
             </section>
           </div>
         </section>
