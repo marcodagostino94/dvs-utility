@@ -2,7 +2,7 @@
 
 Web app/PWA indipendente per gli strumenti interni di Digital Video Service, coordinata graficamente con DVS Planning e DVS Gestionale.
 
-## Versione 1.2
+## Versione 1.3
 
 - dashboard principale a riquadri in stile DVS liquid glass;
 - navigazione desktop e mobile coordinata;
@@ -14,6 +14,10 @@ Web app/PWA indipendente per gli strumenti interni di Digital Video Service, coo
 - storico DCP condiviso tramite Supabase, senza archiviare l'EDL;
 - salvataggio esplicito oppure automatico quando si genera il PDF;
 - riapertura, modifica, aggiornamento, eliminazione e nuovo PDF dei DCP salvati.
+- home compatta senza scorrimento su desktop;
+- accesso immediato a Carica EDL e Storico DCP;
+- moduli futuri presenti anche nella navigazione laterale;
+- schermata Informazioni coordinata al DVS Planning.
 
 ## Moduli
 

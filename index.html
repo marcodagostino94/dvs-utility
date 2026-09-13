@@ -36,14 +36,30 @@
             <span>DCP Video</span>
             <small>Presto</small>
           </button>
+          <button class="nav-item disabled" type="button" disabled>
+            <span class="nav-icon sound-icon" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+            <span>Loudness</span>
+            <small>Presto</small>
+          </button>
+          <button class="nav-item disabled" type="button" disabled>
+            <span class="nav-icon nav-svg-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3h9l3 3v15H6zM15 3v4h4M9 11h6M9 15h6M9 19h4"/></svg></span>
+            <span>Scheda Tecnica</span>
+            <small>Presto</small>
+          </button>
+          <button class="nav-item disabled" type="button" disabled>
+            <span class="nav-icon nav-svg-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="2.5" width="16" height="19" rx="2.5"/><rect x="7" y="5.5" width="10" height="4" rx="1"/><path d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01"/></svg></span>
+            <span>Timecode</span>
+            <small>Presto</small>
+          </button>
         </nav>
 
-        <div class="sidebar-information">
-          <strong>Informazioni</strong>
-          <span>DVS Utility · v1.2</span>
-          <small>Ideazione e sviluppo<br>Marco D'Agostino per Digital Video Service</small>
+        <div class="sidebar-bottom">
+          <button class="nav-item information-nav" id="openInfoNav" type="button">
+            <span class="nav-icon info-icon" aria-hidden="true">i</span>
+            <span>Informazioni</span>
+          </button>
+          <span class="build-pill">v1.3</span>
         </div>
-        <p class="sidebar-footer">© 2026 · Tutti i diritti riservati</p>
       </aside>
 
       <header class="iphone-topbar">
@@ -101,7 +117,7 @@
               <div class="utility-card future-card">
                 <span class="availability soon">Prossimamente</span>
                 <span class="card-orb future-orb" aria-hidden="true">
-                  <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="22" /><path d="M32 19v14l10 6M20 12l-6 6M44 12l6 6" /></svg>
+                  <svg viewBox="0 0 64 64"><rect x="14" y="7" width="36" height="50" rx="6"/><rect x="21" y="14" width="22" height="10" rx="2"/><path d="M22 33h.01M32 33h.01M42 33h.01M22 43h.01M32 43h.01M42 43h.01M22 51h.01M32 51h10"/></svg>
                 </span>
                 <span class="card-copy"><strong>Calcolatrice Timecode</strong></span>
               </div>
@@ -122,15 +138,23 @@
               <h1>DCP Audio</h1>
             </div>
 
-            <section class="panel import-panel" id="dropZone">
-              <input id="fileInput" type="file" accept=".edl,.txt" hidden />
-              <div class="upload-icon" aria-hidden="true">
-                <svg viewBox="0 0 64 64"><path d="M32 42V14m0 0L21 25m11-11 11 11" /><path d="M14 38v8a6 6 0 0 0 6 6h24a6 6 0 0 0 6-6v-8" /></svg>
-              </div>
-              <div><h2>Carica il file EDL</h2><p>Trascinalo qui oppure selezionalo dal Mac.</p></div>
-              <button class="primary-button" id="browseButton">Scegli file</button>
-              <p class="privacy-note"><span>✓</span> Il file non lascia questo dispositivo</p>
-            </section>
+            <div class="audio-entry-grid" id="audioEntryGrid">
+              <section class="panel import-panel" id="dropZone">
+                <input id="fileInput" type="file" accept=".edl,.txt" hidden />
+                <div class="upload-icon" aria-hidden="true">
+                  <svg viewBox="0 0 64 64"><path d="M32 42V14m0 0L21 25m11-11 11 11" /><path d="M14 38v8a6 6 0 0 0 6 6h24a6 6 0 0 0 6-6v-8" /></svg>
+                </div>
+                <div><h2>Carica il file EDL</h2><p>Trascinalo qui oppure selezionalo dal Mac.</p></div>
+                <button class="primary-button" id="browseButton">Scegli file</button>
+                <p class="privacy-note"><span>✓</span> Il file non lascia questo dispositivo</p>
+              </section>
+
+              <button class="panel history-entry-card" id="openHistoryButton" type="button">
+                <span class="history-entry-top"><small>ARCHIVIO</small><span class="history-card-icon" aria-hidden="true">↺</span></span>
+                <span class="history-entry-copy"><strong>Storico DCP</strong><em>Apri, modifica, crea nuovi PDF o elimina i rapporti salvati.</em></span>
+                <b aria-hidden="true">›</b>
+              </button>
+            </div>
 
             <section class="workspace hidden" id="workspace">
               <div class="file-summary panel">
@@ -139,7 +163,7 @@
                 <button class="secondary-button" id="changeFile">Cambia file</button>
               </div>
 
-              <div class="two-column">
+              <div class="two-column work-controls">
                 <section class="panel controls-panel">
                   <div class="panel-title-row">
                     <div><p class="step-label">PASSAGGIO 1</p><h2>Tracce musicali</h2></div>
@@ -153,11 +177,6 @@
                   <button class="primary-button wide" id="generateButton">Elabora DCP Audio</button>
                 </section>
 
-                <button class="panel history-entry-card" id="openHistoryButton" type="button">
-                  <span class="history-card-icon" aria-hidden="true">↺</span>
-                  <span><small>ARCHIVIO</small><strong>Storico DCP</strong><em>Apri, modifica, ristampa o elimina i rapporti salvati.</em></span>
-                  <b aria-hidden="true">›</b>
-                </button>
               </div>
 
               <section class="panel results-panel hidden" id="resultsPanel">
@@ -198,6 +217,24 @@
               <div class="history-toolbar"><button class="secondary-button" id="historyBackInline">‹ Torna a DCP Audio</button><button class="primary-button" id="historyNewDcp">+ Nuovo DCP</button></div>
               <div class="history-list" id="historyList"></div>
               <div class="empty-result hidden" id="emptyHistory">Non ci sono ancora DCP salvati.</div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view info-view" id="infoView">
+          <header class="info-page-header"><h1>Informazioni</h1><span>DVS Utility</span></header>
+          <div class="info-page-body">
+            <button class="info-back-button" id="infoBackButton" type="button">‹ Utility</button>
+            <section class="information-card">
+              <img src="./assets/logos/digital-video-full.png" alt="Digital Video">
+              <h2>DVS Utility</h2>
+              <p>Applicazione per gli strumenti tecnici di Digital Video Service.</p>
+              <dl>
+                <div><dt>Versione</dt><dd>v1.3</dd></div>
+                <div><dt>Ideazione e sviluppo</dt><dd>Marco D'Agostino per Digital Video Service</dd></div>
+                <div><dt>Sincronizzazione</dt><dd>Supabase Database</dd></div>
+              </dl>
+              <p class="information-copyright"><strong>Copyright © 2026 Marco D'Agostino per Digital Video Service</strong><br>Tutti i diritti riservati.</p>
             </section>
           </div>
         </section>

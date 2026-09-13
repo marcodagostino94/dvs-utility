@@ -4,6 +4,8 @@ const $ = (selector) => document.querySelector(selector);
 const homeView = $("#homeView");
 const audioView = $("#audioView");
 const historyView = $("#historyView");
+const infoView = $("#infoView");
+const audioEntryGrid = $("#audioEntryGrid");
 const fileInput = $("#fileInput");
 const dropZone = $("#dropZone");
 const workspace = $("#workspace");
@@ -28,12 +30,14 @@ function showView(view) {
   homeView.classList.toggle("active", isHome);
   audioView.classList.toggle("active", isAudio);
   historyView.classList.toggle("active", view === "history");
+  infoView.classList.toggle("active", view === "info");
   $("#openHomeNav").classList.toggle("active", isHome);
-  $("#openAudioNav").classList.toggle("active", !isHome);
+  $("#openAudioNav").classList.toggle("active", isAudio || view === "history");
+  $("#openInfoNav").classList.toggle("active", view === "info");
   $("#iphoneHomeNav").classList.toggle("active", isHome);
-  $("#iphoneAudioNav").classList.toggle("active", !isHome);
-  mobileNav.classList.toggle("audio-active", !isHome);
-  $("#iphoneSectionTitle").textContent = view === "history" ? "STORICO DCP" : isAudio ? "DCP AUDIO" : "UTILITY";
+  $("#iphoneAudioNav").classList.toggle("active", isAudio || view === "history");
+  mobileNav.classList.toggle("audio-active", isAudio || view === "history");
+  $("#iphoneSectionTitle").textContent = view === "history" ? "STORICO DCP" : view === "info" ? "INFORMAZIONI" : isAudio ? "DCP AUDIO" : "UTILITY";
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -101,7 +105,7 @@ async function loadFile(file) {
   selectedTracks = new Set(previous.length ? previous : parsed.audioTracks);
   $("#fileName").textContent = file.name;
   $("#fileDetails").textContent = `${parsed.title || "Sequenza Avid"} · ${parsed.audioTracks.length} tracce audio · ${parsed.videoTracks.length} tracce video rilevate`;
-  dropZone.classList.add("hidden");
+  audioEntryGrid.classList.add("hidden");
   workspace.classList.remove("hidden");
   $(".file-summary").classList.remove("hidden");
   $(".two-column").classList.remove("hidden");
@@ -163,6 +167,7 @@ function newDcp() {
   selectedTracks = new Set();
   fileInput.value = "";
   dropZone.classList.remove("hidden");
+  audioEntryGrid.classList.remove("hidden");
   workspace.classList.add("hidden");
   resultsPanel.classList.add("hidden");
   setSavedState();
@@ -199,7 +204,7 @@ async function saveDcp() {
     toast(wasExisting ? "DCP aggiornato nello storico" : "DCP salvato nello storico");
     return true;
   } catch (error) {
-    toast(error.code === "42P01" ? "Esegui prima lo script database della v1.2" : `Salvataggio non riuscito: ${error.message}`);
+    toast(error.code === "42P01" ? "Esegui prima lo script database incluso" : `Salvataggio non riuscito: ${error.message}`);
     return false;
   } finally { $("#saveButton").disabled = false; }
 }
@@ -221,7 +226,7 @@ async function loadHistory() {
   $("#emptyHistory").classList.add("hidden");
   if (!db) { list.innerHTML = '<div class="history-error">Database non configurato.</div>'; return; }
   const { data, error } = await db.from("dcp_audio_reports").select("id,title,rows,created_at,updated_at").order("updated_at", { ascending: false });
-  if (error) { list.innerHTML = `<div class="history-error">Storico non disponibile: ${error.code === "42P01" ? "esegui lo script database della v1.2" : error.message}</div>`; return; }
+  if (error) { list.innerHTML = `<div class="history-error">Storico non disponibile: ${error.code === "42P01" ? "esegui lo script database incluso" : error.message}</div>`; return; }
   list.replaceChildren();
   $("#emptyHistory").classList.toggle("hidden", data.length > 0);
   data.forEach((item) => {
@@ -240,7 +245,7 @@ async function loadHistory() {
 function openSavedDcp(item) {
   reportRows = cleanStoredRows(item.rows);
   $("#resultTitle").value = item.title;
-  dropZone.classList.add("hidden");
+  audioEntryGrid.classList.add("hidden");
   workspace.classList.remove("hidden");
   $(".file-summary").classList.add("hidden");
   $(".two-column").classList.add("hidden");
@@ -265,6 +270,8 @@ $("#openHomeNav").addEventListener("click", () => showView("home"));
 $("#iphoneHomeNav").addEventListener("click", () => showView("home"));
 $("#homeButton").addEventListener("click", () => showView("home"));
 $("#iphoneBrand").addEventListener("click", () => showView("home"));
+$("#openInfoNav").addEventListener("click", () => showView("info"));
+$("#infoBackButton").addEventListener("click", () => showView("home"));
 $("#backButton").addEventListener("click", () => showView("home"));
 $("#browseButton").addEventListener("click", () => fileInput.click());
 $("#changeFile").addEventListener("click", () => fileInput.click());
