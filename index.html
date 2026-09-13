@@ -35,15 +35,13 @@
             <span class="nav-icon video-outline" aria-hidden="true"></span>
             <span>DCP Video</span>
           </button>
-          <button class="nav-item disabled" type="button" disabled>
+          <button class="nav-item" id="openLoudnessNav" type="button">
             <span class="nav-icon sound-icon" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
             <span>Loudness</span>
-            <small>Presto</small>
           </button>
-          <button class="nav-item disabled" type="button" disabled>
+          <button class="nav-item" id="openTechnicalNav" type="button">
             <span class="nav-icon nav-svg-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3h9l3 3v15H6zM15 3v4h4M9 11h6M9 15h6M9 19h4"/></svg></span>
             <span>Scheda Tecnica</span>
-            <small>Presto</small>
           </button>
           <button class="nav-item" id="openCalculatorNav" type="button">
             <span class="nav-icon nav-svg-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="2.5" width="16" height="19" rx="2.5"/><rect x="7" y="5.5" width="10" height="4" rx="1"/><path d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01"/></svg></span>
@@ -56,7 +54,7 @@
             <span class="nav-icon info-icon" aria-hidden="true">i</span>
             <span>Informazioni</span>
           </button>
-          <span class="build-pill">v2.0</span>
+          <span class="build-pill">v3.2</span>
         </div>
       </aside>
 
@@ -96,21 +94,23 @@
                 <span class="card-launch" aria-hidden="true">↗</span>
               </button>
 
-              <div class="utility-card future-card">
-                <span class="availability soon">Prossimamente</span>
+              <button class="utility-card future-card enabled-card" id="openLoudness" type="button">
+                <span class="availability"><i></i> Disponibile</span>
                 <span class="card-orb future-orb" aria-hidden="true">
                   <svg viewBox="0 0 64 64"><path d="M10 32h7l4-16 8 32 7-25 6 18 5-9h7" /></svg>
                 </span>
                 <span class="card-copy"><strong>Loudness</strong></span>
-              </div>
+                <span class="card-launch" aria-hidden="true">↗</span>
+              </button>
 
-              <div class="utility-card future-card">
-                <span class="availability soon">Prossimamente</span>
+              <button class="utility-card future-card enabled-card" id="openTechnical" type="button">
+                <span class="availability"><i></i> Disponibile</span>
                 <span class="card-orb future-orb" aria-hidden="true">
                   <svg viewBox="0 0 64 64"><path d="M18 10h22l8 8v36H18z" /><path d="M40 10v10h10M25 30h16M25 38h16M25 46h10" /></svg>
                 </span>
                 <span class="card-copy"><strong>Scheda Tecnica</strong></span>
-              </div>
+                <span class="card-launch" aria-hidden="true">↗</span>
+              </button>
 
               <button class="utility-card future-card enabled-card" id="openCalculator" type="button">
                 <span class="availability"><i></i> Disponibile</span>
@@ -229,7 +229,7 @@
               </div>
               <section class="panel controls-panel" id="videoControls">
                 <div class="panel-title-row"><div><p class="step-label">PASSAGGIO 1</p><h2>Tracce video</h2></div><button class="text-button" id="toggleVideoTracks">Deseleziona tutte</button></div>
-                <p class="muted">Di default sono selezionate tutte le tracce video rilevate.</p>
+                <p class="muted" id="videoTrackSummary">Di default sono selezionate tutte le tracce video rilevate. Puoi disattivarle singolarmente.</p>
                 <div class="track-grid" id="videoTrackGrid"></div>
                 <div class="divider"></div><p class="step-label">PASSAGGIO 2</p><h2>Genera elenco</h2>
                 <button class="primary-button wide" id="generateVideoButton">Elabora DCP Video</button>
@@ -246,7 +246,7 @@
                   <button class="secondary-button" id="selectVisibleVideo">Seleziona tutte</button><button class="text-button" id="deselectVisibleVideo">Deseleziona visibili</button>
                 </div>
                 <div class="empty-result hidden" id="emptyVideoResult">Nessuna clip trovata.</div>
-                <div class="table-wrap" id="videoTableWrap"><table><thead><tr><th class="select-column"><span class="sr-only">Seleziona</span></th><th class="number-column">N.</th><th>Nome clip</th><th class="duration-column">Durata</th><th class="action-column"><span class="sr-only">Azioni</span></th></tr></thead><tbody id="videoResultBody"></tbody></table></div>
+                <div class="table-wrap" id="videoTableWrap"><table><thead><tr><th class="select-column"><span class="sr-only">Seleziona</span></th><th class="number-column">N.</th><th>Nome clip</th><th class="action-column"><span class="sr-only">Azioni</span></th></tr></thead><tbody id="videoResultBody"></tbody></table></div>
               </section>
             </section>
           </div>
@@ -269,6 +269,111 @@
               </section>
               <section class="calculator-history panel"><div class="calculator-history-head"><div><p class="step-label">OPERAZIONI</p><h2>Cronologia</h2></div><button class="text-button" id="clearCalculatorHistory">Svuota</button></div><div id="calculatorHistoryList" class="calculator-history-list"><p class="calculator-empty">Le operazioni compariranno qui.</p></div></section>
             </div>
+          </div>
+        </section>
+
+        <section class="view loudness-view" id="loudnessView">
+          <header class="module-topbar"><div><span>Utility</span><strong>Loudness</strong></div></header>
+          <div class="module-content loudness-content">
+            <div class="module-heading"><p class="eyebrow">CONTROLLO RAI</p><h1>Loudness</h1></div>
+
+            <section class="panel loudness-upload" id="loudnessDropZone">
+              <input id="loudnessFileInput" type="file" accept=".wav,audio/wav,audio/x-wav" hidden>
+              <div class="upload-icon loudness-upload-icon" aria-hidden="true">
+                <svg viewBox="0 0 64 64"><path d="M32 42V14m0 0L21 25m11-11 11 11"/><path d="M14 38v8a6 6 0 0 0 6 6h24a6 6 0 0 0 6-6v-8"/></svg>
+              </div>
+              <div><h2>Carica il file WAV</h2><p>Il file viene analizzato e trasformato esclusivamente su questo Mac.</p></div>
+              <button class="primary-button" id="loudnessBrowseButton" type="button">Scegli WAV</button>
+              <p class="privacy-note"><span>✓</span> Nessun file viene caricato online</p>
+            </section>
+
+            <section class="hidden" id="loudnessWorkspace">
+              <div class="file-summary panel">
+                <div class="file-badge">WAV</div>
+                <div class="file-meta"><strong id="loudnessFileName">—</strong><span id="loudnessFileDetails">—</span></div>
+                <button class="secondary-button" id="loudnessChangeFile" type="button">Cambia file</button>
+              </div>
+
+              <section class="panel waveform-panel">
+                <div class="panel-title-row"><div><p class="step-label">ANALISI ORIGINALE</p><h2 id="loudnessStageTitle">Pronto per l’analisi</h2></div><strong class="progress-percent" id="loudnessWavePercent">0%</strong></div>
+                <div class="waveform-wrap" id="originalWaveformWrap">
+                  <canvas id="originalWaveform" width="1200" height="220"></canvas>
+                  <div class="waveform-scan" id="originalWaveformScan"></div>
+                </div>
+                <div class="loudness-actions"><button class="primary-button" id="analyzeLoudnessButton" type="button">Analizza</button><button class="text-button hidden" id="cancelLoudnessButton" type="button">Annulla</button></div>
+              </section>
+
+              <section class="panel loudness-results hidden" id="loudnessResults">
+                <div class="results-header"><div><p class="step-label">ESITO RAI</p><h2 id="loudnessOverall">—</h2></div><button class="save-button" id="normalizeLoudnessButton" type="button" disabled>Normalizza WAV</button></div>
+                <div class="metric-grid">
+                  <article class="metric-card" id="integratedMetric"><small>Program Loudness</small><strong>—</strong><span>Target −23 LUFS ± 0,2</span></article>
+                  <article class="metric-card" id="peakMetric"><small>Maximum True Peak</small><strong>—</strong><span>Massimo −2,0 dBTP</span></article>
+                  <article class="metric-card" id="lraMetric"><small>Loudness Range</small><strong>—</strong><span>Normale &lt;18 · massimo 20 LU</span></article>
+                </div>
+              </section>
+
+              <section class="panel normalization-panel hidden" id="normalizationPanel">
+                <div class="panel-title-row"><div><p class="step-label">CREAZIONE FILE</p><h2>Normalizzazione WAV</h2></div><strong class="progress-percent" id="normalizationPercent">0%</strong></div>
+                <div class="linear-progress"><i id="normalizationBar"></i></div>
+                <p class="muted" id="normalizationStatus">Preparazione del file 24 bit / 48.000 Hz…</p>
+              </section>
+
+              <section class="panel waveform-panel hidden" id="verificationPanel">
+                <div class="panel-title-row"><div><p class="step-label">RIANALISI AUTOMATICA</p><h2>Verifica del file normalizzato</h2></div><strong class="progress-percent" id="verificationPercent">0%</strong></div>
+                <div class="waveform-wrap"><canvas id="normalizedWaveform" width="1200" height="220"></canvas><div class="waveform-scan" id="normalizedWaveformScan"></div></div>
+              </section>
+
+              <section class="panel loudness-results hidden" id="normalizedResults">
+                <div class="results-header"><div><p class="step-label">RISULTATO FINALE</p><h2 id="normalizedOverall">—</h2></div><button class="primary-button" id="downloadNormalizedButton" type="button">Scarica WAV</button></div>
+                <div class="metric-grid">
+                  <article class="metric-card" id="normalizedIntegratedMetric"><small>Program Loudness</small><strong>—</strong><span>Target −23 LUFS ± 0,2</span></article>
+                  <article class="metric-card" id="normalizedPeakMetric"><small>Maximum True Peak</small><strong>—</strong><span>Massimo −2,0 dBTP</span></article>
+                  <article class="metric-card" id="normalizedLraMetric"><small>Loudness Range</small><strong>—</strong><span>Normale &lt;18 · massimo 20 LU</span></article>
+                </div>
+              </section>
+            </section>
+          </div>
+        </section>
+
+        <section class="view technical-view" id="technicalView">
+          <header class="module-topbar"><div><span>Utility</span><strong>Scheda Tecnica</strong></div></header>
+          <div class="module-content technical-content">
+            <div class="module-heading"><p class="eyebrow">DOCUMENTO RAI</p><h1>Scheda Tecnica</h1></div>
+            <form id="technicalForm" class="technical-form">
+              <section class="panel form-section">
+                <div class="section-heading"><div><p class="step-label">PROGRAMMA</p><h2>Dati principali</h2></div><button class="text-button" id="clearTechnicalForm" type="button">Svuota scheda</button></div>
+                <div class="form-grid two"><label><span>Titolo</span><input name="title" required></label><label><span>Sottotitolo</span><input name="subtitle"></label></div>
+                <div class="form-grid three"><label><span>UORG</span><input name="uorg"></label><label><span>MATR</span><input name="matr"></label><label><span>Identificatore RAI</span><input name="raiId"></label></div>
+              </section>
+
+              <section class="panel form-section">
+                <div class="section-heading"><div><p class="step-label">CONTENUTO</p><h2>Servizi</h2></div><span class="section-note">15 righe previste dal modello RAI</span></div>
+                <div class="services-editor"><div class="service-editor-head"><span>N.</span><span>TC iniziale</span><span>Durata</span><span>Servizio</span></div><div id="technicalServices"></div></div>
+              </section>
+
+              <section class="panel form-section">
+                <p class="step-label">CARATTERISTICHE</p><h2>Consegna e audio</h2>
+                <div class="choice-columns">
+                  <fieldset><legend>Supporto di consegna</legend><label><input type="checkbox" name="delivery" value="BETA SP"> BETA SP</label><label><input type="checkbox" name="delivery" value="IMX"> IMX</label><label><input type="checkbox" name="delivery" value="XDCAM"> XDCAM</label><label><input type="checkbox" name="delivery" value="ALTRO"> ALTRO</label></fieldset>
+                  <fieldset><legend>Audio</legend><label><input type="checkbox" name="audioType" value="MONO"> MONO</label><label><input type="checkbox" name="audioType" value="STEREO"> STEREO</label><label><input type="checkbox" name="audioType" value="DOLBY"> DOLBY</label><label><input type="checkbox" name="audioType" value="ALTRO"> ALTRO</label></fieldset>
+                  <fieldset class="channels-fieldset"><legend>Piste audio</legend><div class="channel-choices" id="technicalChannels"></div></fieldset>
+                </div>
+              </section>
+
+              <section class="panel form-section">
+                <p class="step-label">PRODUZIONE</p><h2>Società e montaggio</h2>
+                <div class="form-grid two"><label><span>Società</span><select name="company"><option>DIGITAL VIDEO SAS DI IUSO ALESSIO</option><option value="">Vuoto</option></select></label><label><span>N. contratto</span><input name="contract"></label><label><span>Indirizzo</span><select name="address"><option>Via Antonio Chinotto, 1 Roma</option><option value="">Vuoto</option></select></label><label><span>Rif. provvisorio</span><input name="provisional"></label><label><span>Telefono</span><select name="phone"><option>06 32500113 - 06 3210643</option><option value="">Vuoto</option></select></label><label><span>Apparati utilizzati</span><select name="equipment"><option>AVID MEDIA COMPOSER</option><option>FINAL CUT</option><option>DA VINCI RESOLVE</option><option value="">Vuoto</option></select></label><label><span>Data inizio</span><input type="date" name="editStart"></label><label><span>Data termine</span><input type="date" name="editEnd"></label></div>
+                <label class="full-field"><span>Note sulle lavorazioni e sul segnale riprodotto</span><textarea name="notes" rows="3"></textarea></label>
+              </section>
+
+              <section class="panel form-section">
+                <p class="step-label">VERIFICHE</p><h2>Visioni e trasmissioni</h2>
+                <div class="form-grid three"><label><span>Data visione tecnica</span><input type="date" name="technicalDate"></label><label><span>TC start</span><input name="technicalTc" placeholder="00:00:00:00"></label><label><span>Firma tecnico o montatore</span><input name="technicalSignature"></label><label><span>Data visione artistica</span><input type="date" name="artisticDate"></label><label><span>Data trasmissione</span><input type="date" name="broadcastDate"></label><label><span>Firma regista o Resp. RAI</span><input name="artisticSignature"></label></div>
+                <div class="transmission-editor"><div><span>Data</span><span>Rete</span><span>Firma</span></div><div><input type="date" name="txDate1"><input name="txNetwork1"><input name="txSignature1"></div><div><input type="date" name="txDate2"><input name="txNetwork2"><input name="txSignature2"></div></div>
+              </section>
+
+              <div class="technical-actions"><button class="primary-button" id="technicalPdfButton" type="submit">PDF</button></div>
+            </form>
           </div>
         </section>
 
@@ -299,7 +404,7 @@
               <h2>DVS Utility</h2>
               <p>Applicazione per gli strumenti tecnici di Digital Video Service.</p>
               <dl>
-                <div><dt>Versione</dt><dd>v2.0</dd></div>
+                <div><dt>Versione</dt><dd>v3.2</dd></div>
                 <div><dt>Ideazione e sviluppo</dt><dd>Marco D'Agostino per Digital Video Service</dd></div>
                 <div><dt>Sincronizzazione</dt><dd>Supabase Database</dd></div>
               </dl>
@@ -317,6 +422,30 @@
         <button id="iphoneCalculatorNav"><span class="nav-icon nav-svg-icon"><svg viewBox="0 0 24 24"><rect x="4" y="2.5" width="16" height="19" rx="2.5"/><rect x="7" y="5.5" width="10" height="4" rx="1"/><path d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01"/></svg></span><small>Timecode</small></button>
       </nav>
     </div>
+
+    <section class="technical-print-sheet" id="technicalPrintSheet" aria-hidden="true">
+      <header class="rai-sheet-header">
+        <img src="./assets/logos/digital-video-full.png" alt="Digital Video">
+        <div class="dvs-address">Via Antonio Chinotto 1<br>00195 Roma<br>Tel. +39 06 32500113 / +39 06 3210643<br>info@digitalvideo-service.com</div>
+        <h1>SCHEDA TECNICA</h1><div class="rai-logo">Rai</div>
+      </header>
+      <div class="rai-title-grid"><strong>TITOLO</strong><span data-print="title"></span><strong>SOTTOTITOLO</strong><span data-print="subtitle"></span></div>
+      <div class="rai-identifiers"><div><strong>UORG</strong><span data-print="uorg"></span></div><div><strong>MATR</strong><span data-print="matr"></span></div><div><strong>IDENTIFICATORE RAI</strong><span data-print="raiId"></span></div></div>
+      <div class="rai-main-grid">
+        <div class="rai-services"><div class="rai-services-head"><b>N°</b><b>TC INIZIALE</b><b>DURATA</b><b>SERVIZIO</b></div><div id="technicalPrintServices"></div></div>
+        <aside class="rai-characteristics">
+          <h3>CARATTERISTICHE</h3>
+          <section><strong>supporto di consegna</strong><div id="printDelivery"></div></section>
+          <section><strong>audio</strong><div id="printAudioType"></div></section>
+          <section><strong>piste audio</strong><div id="printChannels" class="print-channels"></div></section>
+        </aside>
+      </div>
+      <div class="rai-company"><div><strong>SOCIETÀ</strong><span data-print="company"></span></div><div><strong>N° CONTRATTO</strong><span data-print="contract"></span><strong>INDIRIZZO</strong><span data-print="address"></span></div><div><strong>RIF. PROVVISORIO</strong><span data-print="provisional"></span><strong>TELEFONO</strong><span data-print="phone"></span></div></div>
+      <section class="rai-box"><h2>MONTAGGIO</h2><div class="rai-four"><strong>DATA INIZIO</strong><span data-print="editStart"></span><strong>DATA TERMINE</strong><span data-print="editEnd"></span></div><div class="rai-line"><strong>APPARATI UTILIZZATI</strong><span data-print="equipment"></span></div><div class="rai-notes" data-print="notes"></div></section>
+      <section class="rai-box"><h2>VISIONE TECNICA</h2><div class="rai-sign-grid"><div><strong>DATA</strong><span data-print="technicalDate"></span><strong>TC START</strong><span data-print="technicalTc"></span></div><div>Firma tecnico o Montatore<strong data-print="technicalSignature"></strong></div></div></section>
+      <section class="rai-box"><h2>VISIONE ARTISTICA</h2><div class="rai-sign-grid"><div><strong>DATA</strong><span data-print="artisticDate"></span><strong>DATA TRASM.</strong><span data-print="broadcastDate"></span></div><div>Firma Regista o Resp. RAI<strong data-print="artisticSignature"></strong></div></div></section>
+      <section class="rai-box rai-transmissions"><h2>TRASMISSIONI</h2><div class="tx-row tx-head"><strong>DATA</strong><strong>RETE</strong><strong>FIRMA</strong></div><div class="tx-row"><span data-print="txDate1"></span><span data-print="txNetwork1"></span><span data-print="txSignature1"></span></div><div class="tx-row"><span data-print="txDate2"></span><span data-print="txNetwork2"></span><span data-print="txSignature2"></span></div></section>
+    </section>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script type="module" src="./app.js"></script>

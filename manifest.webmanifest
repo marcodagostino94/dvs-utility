@@ -1,7 +1,7 @@
 {
   "name": "DVS Utility",
   "short_name": "DVS Utility",
-  "description": "DVS Utility per l'elaborazione locale dei report Avid.",
+  "description": "Strumenti DVS per DCP, Loudness, schede tecniche RAI e timecode.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#15191d",

@@ -1,9 +1,11 @@
 import { buildAudioReport, buildVideoReport, framesToTc, parseEdl } from "./parser.js";
+import { analyzeWav, loudnessLimits, normalizeWav, parseWav } from "./loudness.js";
 
 const $ = (selector) => document.querySelector(selector);
 const views = {
   home: $("#homeView"), audio: $("#audioView"), video: $("#videoView"),
-  calculator: $("#calculatorView"), history: $("#historyView"), info: $("#infoView")
+  calculator: $("#calculatorView"), loudness: $("#loudnessView"), technical: $("#technicalView"),
+  history: $("#historyView"), info: $("#infoView")
 };
 const hasDatabase = Boolean(window.DVS_SUPABASE?.url && window.DVS_SUPABASE?.publishableKey && window.supabase?.createClient);
 const db = hasDatabase ? window.supabase.createClient(window.DVS_SUPABASE.url, window.DVS_SUPABASE.publishableKey) : null;
@@ -37,13 +39,15 @@ function showView(name) {
   $("#openAudioNav").classList.toggle("active", inAudio);
   $("#openVideoNav").classList.toggle("active", inVideo);
   $("#openCalculatorNav").classList.toggle("active", name === "calculator");
+  $("#openLoudnessNav").classList.toggle("active", name === "loudness");
+  $("#openTechnicalNav").classList.toggle("active", name === "technical");
   $("#openInfoNav").classList.toggle("active", name === "info");
   $("#iphoneHomeNav").classList.toggle("active", name === "home");
   $("#iphoneAudioNav").classList.toggle("active", inAudio);
   $("#iphoneVideoNav").classList.toggle("active", inVideo);
   $("#iphoneCalculatorNav").classList.toggle("active", name === "calculator");
   $(".iphone-bottom-nav").dataset.active = inVideo ? "2" : name === "calculator" ? "3" : inAudio ? "1" : "0";
-  $("#iphoneSectionTitle").textContent = name === "history" ? "STORICO DCP" : name === "audio" ? "DCP AUDIO" : name === "video" ? "DCP VIDEO" : name === "calculator" ? "TIMECODE" : name === "info" ? "INFORMAZIONI" : "UTILITY";
+  $("#iphoneSectionTitle").textContent = name === "history" ? "STORICO DCP" : name === "audio" ? "DCP AUDIO" : name === "video" ? "DCP VIDEO" : name === "calculator" ? "TIMECODE" : name === "loudness" ? "LOUDNESS" : name === "technical" ? "SCHEDA TECNICA" : name === "info" ? "INFORMAZIONI" : "UTILITY";
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -65,7 +69,7 @@ function renderTrackButtons(container, tracks, selected, storageKey, toggleButto
     const button = document.createElement("button");
     button.type = "button";
     button.className = `track-button${selected.has(track) ? " active" : ""}`;
-    button.textContent = track;
+    button.textContent = `${selected.has(track) ? "✓ " : ""}${track}`;
     button.setAttribute("aria-pressed", String(selected.has(track)));
     button.addEventListener("click", () => {
       selected.has(track) ? selected.delete(track) : selected.add(track);
@@ -76,6 +80,7 @@ function renderTrackButtons(container, tracks, selected, storageKey, toggleButto
   });
   const allSelected = tracks.length > 0 && tracks.every((track) => selected.has(track));
   toggleButton.textContent = allSelected ? "Deseleziona tutte" : "Seleziona tutte";
+  if (container.id === "videoTrackGrid") $("#videoTrackSummary").textContent = `${selected.size} di ${tracks.length} piste selezionate. Clicca su una pista per attivarla o disattivarla.`;
 }
 
 function cleanRows(rows, type) {
@@ -220,11 +225,10 @@ function renderVideoRows() {
     input.addEventListener("input", () => { row.name = input.value; });
     input.addEventListener("blur", () => { row.name = input.value.trim() || "Clip senza nome"; videoRows.sort((a, b) => a.name.localeCompare(b.name, "it", { sensitivity: "base", numeric: true })); renderVideoRows(); });
     nameCell.append(input);
-    const duration = document.createElement("td"); duration.className = "duration-column"; duration.textContent = row.duration;
     const action = document.createElement("td"); action.className = "action-column";
     const remove = document.createElement("button"); remove.type = "button"; remove.className = "remove-button"; remove.textContent = "×"; remove.title = "Elimina definitivamente questa riga";
     remove.addEventListener("click", () => { videoRows = videoRows.filter((item) => item.id !== row.id); renderVideoRows(); });
-    action.append(remove); tr.append(selectCell, number, nameCell, duration, action); body.append(tr);
+    action.append(remove); tr.append(selectCell, number, nameCell, action); body.append(tr);
   });
   const selectedCount = videoRows.filter((row) => row.selected).length;
   $("#videoResultSummary").textContent = `${videoRows.length} clip · ${selectedCount} selezionate · Ordine A–Z`;
@@ -338,6 +342,7 @@ let calcAccumulator = null;
 let calcOperator = null;
 let calcShowingResult = false;
 let calcHistory = [];
+let calcPendingIndex = null;
 
 function digitsToTc(digits) {
   const padded = String(digits || "").slice(-8).padStart(8, "0");
@@ -363,7 +368,10 @@ function renderCalculator() {
   [...calcHistory].reverse().forEach((entry) => {
     const row = document.createElement("div"); row.className = "calculator-history-row";
     row.innerHTML = `<span></span><strong></strong><small></small>`;
-    row.querySelector("span").textContent = entry.expression; row.querySelector("strong").textContent = entry.result; row.querySelector("small").textContent = `${entry.fps} fps`; list.append(row);
+    row.classList.toggle("pending", Boolean(entry.pending));
+    row.querySelector("span").textContent = entry.expression;
+    row.querySelector("strong").textContent = entry.pending ? "In attesa…" : entry.result;
+    row.querySelector("small").textContent = `${entry.fps} fps`; list.append(row);
   });
 }
 
@@ -372,7 +380,10 @@ function enteredFramesSilently() {
   return (((hh * 60 + mm) * 60 + ss) * calcFps) + ff;
 }
 
-function resetCalculation() { calcDigits = ""; calcAccumulator = null; calcOperator = null; calcShowingResult = false; renderCalculator(); }
+function resetCalculation() {
+  if (calcPendingIndex != null && calcHistory[calcPendingIndex]?.pending) calcHistory.splice(calcPendingIndex, 1);
+  calcPendingIndex = null; calcDigits = ""; calcAccumulator = null; calcOperator = null; calcShowingResult = false; renderCalculator();
+}
 
 function enterDigit(digit) {
   if (calcShowingResult && !calcOperator) { calcAccumulator = null; calcShowingResult = false; }
@@ -387,13 +398,22 @@ function chooseOperator(operator) {
     else if (calcOperator) calcAccumulator = applyCalculation(calcAccumulator, value, calcOperator, true);
   }
   if (calcAccumulator == null) return toast("Inserisci prima un timecode");
-  calcDigits = ""; calcOperator = operator; calcShowingResult = false; renderCalculator();
+  calcDigits = ""; calcOperator = operator; calcShowingResult = false;
+  const pending = { expression: `${framesToTc(calcAccumulator, calcFps)} ${calcSymbol(operator)}`, result: "", fps: calcFps, pending: true };
+  if (calcPendingIndex != null && calcHistory[calcPendingIndex]?.pending) calcHistory[calcPendingIndex] = pending;
+  else { calcHistory.push(pending); calcPendingIndex = calcHistory.length - 1; }
+  renderCalculator();
 }
 
 function applyCalculation(first, second, operator, record = true) {
   if (operator === "range" && second < first) { toast("Il timecode finale deve essere successivo a quello iniziale"); return first; }
   const result = operator === "add" ? first + second : operator === "subtract" ? Math.max(0, first - second) : second - first;
-  if (record) calcHistory.push({ expression: `${framesToTc(first, calcFps)} ${calcSymbol(operator)} ${framesToTc(second, calcFps)}`, result: framesToTc(result, calcFps), fps: calcFps });
+  if (record) {
+    const completed = { expression: `${framesToTc(first, calcFps)} ${calcSymbol(operator)} ${framesToTc(second, calcFps)}`, result: framesToTc(result, calcFps), fps: calcFps, pending: false };
+    if (calcPendingIndex != null && calcHistory[calcPendingIndex]?.pending) calcHistory[calcPendingIndex] = completed;
+    else calcHistory.push(completed);
+    calcPendingIndex = null;
+  }
   return result;
 }
 
@@ -411,6 +431,172 @@ function calculatorAction(action) {
   chooseOperator(action === "range" ? "range" : action);
 }
 
+// LOUDNESS — elaborazione interamente locale
+let loudnessFile = null;
+let loudnessWav = null;
+let loudnessAnalysis = null;
+let loudnessNormalizedBlob = null;
+let loudnessTask = null;
+
+function formatFileSize(bytes) {
+  if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
+  if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
+  return `${Math.round(bytes / 1024)} KB`;
+}
+
+function formatClock(seconds) {
+  const total = Math.max(0, Math.round(seconds));
+  return `${String(Math.floor(total / 3600)).padStart(2, "0")}:${String(Math.floor(total % 3600 / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
+function drawWaveform(canvas, values, color = "#32d874") {
+  const context = canvas.getContext("2d"); const width = canvas.width; const height = canvas.height;
+  context.clearRect(0, 0, width, height); context.fillStyle = "rgba(255,255,255,.025)"; context.fillRect(0, 0, width, height);
+  context.strokeStyle = "rgba(255,255,255,.08)"; context.beginPath(); context.moveTo(0, height / 2); context.lineTo(width, height / 2); context.stroke();
+  context.fillStyle = color;
+  const barWidth = width / values.length;
+  values.forEach((value, index) => { const amplitude = Math.max(1, Math.min(height * .46, value * height * .46)); context.fillRect(index * barWidth, height / 2 - amplitude, Math.max(1, barWidth - 1), amplitude * 2); });
+}
+
+function metricState(analysis) {
+  const integratedOk = analysis.integrated >= -23.2 && analysis.integrated <= -22.8;
+  const peakOk = analysis.truePeak <= loudnessLimits.TRUE_PEAK_LIMIT + 0.01;
+  const lraOk = analysis.lra <= 20;
+  return { integratedOk, peakOk, lraOk, compliant: integratedOk && peakOk && lraOk };
+}
+
+function updateMetric(id, value, unit, state) {
+  const card = $(id); card.classList.remove("ok", "warning", "error"); card.classList.add(state);
+  card.querySelector("strong").textContent = `${Number.isFinite(value) ? value.toFixed(1).replace("-0.0", "0.0") : "—"} ${unit}`;
+}
+
+function renderLoudnessResult(analysis, normalized = false) {
+  const prefix = normalized ? "normalized" : "";
+  const state = metricState(analysis);
+  const integratedId = normalized ? "#normalizedIntegratedMetric" : "#integratedMetric";
+  const peakId = normalized ? "#normalizedPeakMetric" : "#peakMetric";
+  const lraId = normalized ? "#normalizedLraMetric" : "#lraMetric";
+  updateMetric(integratedId, analysis.integrated, "LUFS", state.integratedOk ? "ok" : "error");
+  updateMetric(peakId, analysis.truePeak, "dBTP", state.peakOk ? "ok" : "error");
+  updateMetric(lraId, analysis.lra, "LU", state.lraOk ? (analysis.lra < 18 ? "ok" : "warning") : "error");
+  const overall = normalized ? $("#normalizedOverall") : $("#loudnessOverall");
+  overall.textContent = state.compliant ? (analysis.lra >= 18 ? "Conforme · LRA elevato" : "File conforme RAI") : "File non conforme";
+  overall.className = state.compliant ? "result-ok" : "result-error";
+  if (!normalized) {
+    $("#loudnessResults").classList.remove("hidden");
+    const measurable = Number.isFinite(analysis.integrated) && Number.isFinite(analysis.truePeak);
+    $("#normalizeLoudnessButton").disabled = state.compliant || !measurable;
+    $("#normalizeLoudnessButton").textContent = !measurable ? "Audio non misurabile" : state.compliant ? "Nessuna normalizzazione necessaria" : "Normalizza WAV";
+  } else $("#normalizedResults").classList.remove("hidden");
+  return state;
+}
+
+async function loadLoudnessFile(file) {
+  if (!file || !/\.wav$/i.test(file.name)) return toast("Seleziona un file WAV non compresso");
+  try {
+    const wav = parseWav(await file.arrayBuffer());
+    if (wav.channels > 8) throw new Error("Sono supportati al massimo 8 canali");
+    loudnessFile = file; loudnessWav = wav; loudnessAnalysis = null; loudnessNormalizedBlob = null;
+    $("#loudnessFileName").textContent = file.name;
+    $("#loudnessFileDetails").textContent = `${wav.channels} ${wav.channels === 1 ? "canale" : "canali"} · ${wav.sampleRate.toLocaleString("it-IT")} Hz · ${wav.bitsPerSample} bit · ${formatClock(wav.duration)} · ${formatFileSize(file.size)}`;
+    $("#loudnessDropZone").classList.add("hidden"); $("#loudnessWorkspace").classList.remove("hidden");
+    ["#loudnessResults", "#normalizationPanel", "#verificationPanel", "#normalizedResults"].forEach((id) => $(id).classList.add("hidden"));
+    $("#loudnessWavePercent").textContent = "0%"; $("#originalWaveformScan").style.width = "0%"; $("#loudnessStageTitle").textContent = "Pronto per l’analisi";
+    drawWaveform($("#originalWaveform"), new Float32Array(720), "rgba(50,216,116,.65)");
+  } catch (error) { toast(error.message); }
+}
+
+async function runLoudnessAnalysis() {
+  if (!loudnessWav || loudnessTask) return;
+  loudnessTask = { aborted: false }; $("#cancelLoudnessButton").classList.remove("hidden"); $("#analyzeLoudnessButton").disabled = true;
+  $("#loudnessStageTitle").textContent = "Analisi in corso…";
+  try {
+    loudnessAnalysis = await analyzeWav(loudnessWav, (progress, waveform) => {
+      const percentage = Math.round(progress * 100); $("#loudnessWavePercent").textContent = `${percentage}%`; $("#originalWaveformScan").style.width = `${percentage}%`; drawWaveform($("#originalWaveform"), waveform, "rgba(50,216,116,.78)");
+    }, loudnessTask);
+    $("#loudnessStageTitle").textContent = "Analisi completata"; renderLoudnessResult(loudnessAnalysis); toast("Analisi completata");
+  } catch (error) { if (error.name !== "AbortError") toast(error.message); else toast("Analisi annullata"); }
+  finally { loudnessTask = null; $("#cancelLoudnessButton").classList.add("hidden"); $("#analyzeLoudnessButton").disabled = false; }
+}
+
+async function runNormalization() {
+  if (!loudnessAnalysis || loudnessTask) return;
+  loudnessTask = { aborted: false }; $("#normalizeLoudnessButton").disabled = true; $("#normalizationPanel").classList.remove("hidden");
+  $("#verificationPanel").classList.add("hidden"); $("#normalizedResults").classList.add("hidden");
+  try {
+    const normalized = await normalizeWav(loudnessWav, loudnessAnalysis, (progress) => {
+      const percentage = Math.round(progress * 100); $("#normalizationPercent").textContent = `${percentage}%`; $("#normalizationBar").style.width = `${percentage}%`;
+    }, loudnessTask);
+    loudnessNormalizedBlob = normalized.blob;
+    $("#normalizationStatus").textContent = `File creato · guadagno ${normalized.gainDb >= 0 ? "+" : ""}${normalized.gainDb.toFixed(2)} dB · verifica automatica in corso…`;
+    $("#verificationPanel").classList.remove("hidden");
+    const verifiedWav = parseWav(await normalized.blob.arrayBuffer());
+    const verified = await analyzeWav(verifiedWav, (progress, waveform) => {
+      const percentage = Math.round(progress * 100); $("#verificationPercent").textContent = `${percentage}%`; $("#normalizedWaveformScan").style.width = `${percentage}%`; drawWaveform($("#normalizedWaveform"), waveform, "rgba(50,216,116,.78)");
+    }, loudnessTask);
+    const finalState = renderLoudnessResult(verified, true);
+    $("#normalizationStatus").textContent = finalState.compliant ? "Creazione e verifica completate. Il WAV è pronto per il download." : "File creato e verificato: controlla i parametri evidenziati in rosso prima della consegna.";
+  } catch (error) { if (error.name !== "AbortError") toast(error.message); }
+  finally { loudnessTask = null; $("#normalizeLoudnessButton").disabled = false; }
+}
+
+function downloadNormalizedWav() {
+  if (!loudnessNormalizedBlob) return;
+  const url = URL.createObjectURL(loudnessNormalizedBlob); const anchor = document.createElement("a");
+  anchor.href = url; anchor.download = `${loudnessFile.name.replace(/\.wav$/i, "")}_NORMALIZZATO_RAI_24BIT_48KHZ.wav`; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
+// SCHEDA TECNICA RAI
+const serviceOptions = ["", "ANTEPRIMA", "PROGRAMMA", "OROLOGIO", "BARRE COLORE", "NERI COMMERCIALI", "NERO", "INTRO", "CODA FINALE", "CODA FINALE + FONDINI", "ALTRO"];
+
+function initTechnicalForm() {
+  const services = $("#technicalServices");
+  for (let index = 1; index <= 15; index += 1) {
+    const row = document.createElement("div"); row.className = "service-editor-row";
+    const options = serviceOptions.map((value) => `<option value="${value}">${value || "Seleziona…"}</option>`).join("");
+    row.innerHTML = `<b>${index}</b><input name="serviceTc${index}" inputmode="numeric" placeholder="00:00:00:00"><input name="serviceDuration${index}" inputmode="numeric" placeholder="00:00:00:00"><select name="serviceName${index}">${options}</select>`;
+    const select = row.querySelector("select");
+    select.addEventListener("change", () => {
+      if (select.value !== "ALTRO") return;
+      const custom = prompt("Inserisci la dicitura del servizio:", "")?.trim();
+      if (!custom) { select.value = ""; return; }
+      select.add(new Option(custom.toUpperCase(), custom.toUpperCase()), 1); select.value = custom.toUpperCase();
+    });
+    services.append(row);
+  }
+  const channels = $("#technicalChannels");
+  for (let index = 1; index <= 8; index += 1) channels.insertAdjacentHTML("beforeend", `<label><input type="checkbox" name="channels" value="CH${index}"> CH${index}</label>`);
+}
+
+function formatTechnicalDate(value) {
+  if (!value) return ""; const [year, month, day] = value.split("-"); return `${day}/${month}/${year}`;
+}
+
+function fillChecklist(container, options, selected) {
+  container.replaceChildren(); options.forEach((option) => { const line = document.createElement("span"); line.textContent = `${selected.includes(option) ? "☒" : "☐"} ${option}`; container.append(line); });
+}
+
+function buildTechnicalPrint() {
+  const form = $("#technicalForm"); const data = new FormData(form);
+  document.querySelectorAll("#technicalPrintSheet [data-print]").forEach((element) => {
+    const name = element.dataset.print; const raw = String(data.get(name) || ""); element.textContent = /Date|editStart|editEnd/.test(name) ? formatTechnicalDate(raw) : raw;
+  });
+  const services = $("#technicalPrintServices"); services.replaceChildren();
+  for (let index = 1; index <= 15; index += 1) {
+    const row = document.createElement("div"); row.innerHTML = `<b>${index}</b><span></span><span></span><span></span>`;
+    row.children[1].textContent = data.get(`serviceTc${index}`) || ""; row.children[2].textContent = data.get(`serviceDuration${index}`) || ""; row.children[3].textContent = data.get(`serviceName${index}`) || ""; services.append(row);
+  }
+  fillChecklist($("#printDelivery"), ["BETA SP", "IMX", "XDCAM", "ALTRO"], data.getAll("delivery"));
+  fillChecklist($("#printAudioType"), ["MONO", "STEREO", "DOLBY", "ALTRO"], data.getAll("audioType"));
+  fillChecklist($("#printChannels"), Array.from({ length: 8 }, (_, i) => `CH${i + 1}`), data.getAll("channels"));
+}
+
+function printTechnicalSheet(event) {
+  event.preventDefault();
+  if (!$("#technicalForm").reportValidity()) return;
+  buildTechnicalPrint(); document.body.dataset.printMode = "technical"; window.print();
+}
+
 // NAVIGAZIONE E AZIONI
 $("#openAudio").addEventListener("click", showAudioLanding);
 $("#openAudioNav").addEventListener("click", showAudioLanding);
@@ -421,6 +607,10 @@ $("#iphoneVideoNav").addEventListener("click", showVideoLanding);
 $("#openCalculator").addEventListener("click", () => showView("calculator"));
 $("#openCalculatorNav").addEventListener("click", () => showView("calculator"));
 $("#iphoneCalculatorNav").addEventListener("click", () => showView("calculator"));
+$("#openLoudness").addEventListener("click", () => showView("loudness"));
+$("#openLoudnessNav").addEventListener("click", () => showView("loudness"));
+$("#openTechnical").addEventListener("click", () => showView("technical"));
+$("#openTechnicalNav").addEventListener("click", () => showView("technical"));
 $("#openHomeNav").addEventListener("click", () => showView("home"));
 $("#iphoneHomeNav").addEventListener("click", () => showView("home"));
 $("#homeButton").addEventListener("click", () => showView("home"));
@@ -464,8 +654,22 @@ $("#historyNewDcp").addEventListener("click", () => historyOrigin === "video" ? 
 
 $("#fpsSelector").addEventListener("click", (event) => { const button = event.target.closest("button[data-fps]"); if (!button) return; calcFps = Number(button.dataset.fps); $("#fpsSelector").querySelectorAll("button").forEach((item) => item.classList.toggle("active", item === button)); $("#fpsLabel").textContent = `${calcFps} fps`; resetCalculation(); });
 $("#calculatorKeypad").addEventListener("click", (event) => { const button = event.target.closest("button"); if (!button) return; if (button.dataset.digit != null) enterDigit(button.dataset.digit); else if (button.dataset.action) calculatorAction(button.dataset.action); });
-$("#clearCalculatorHistory").addEventListener("click", () => { calcHistory = []; renderCalculator(); });
+$("#clearCalculatorHistory").addEventListener("click", () => { calcHistory = []; calcPendingIndex = null; renderCalculator(); });
 window.addEventListener("keydown", (event) => { if (!views.calculator.classList.contains("active")) return; if (/^\d$/.test(event.key)) enterDigit(event.key); else if (event.key === "Backspace") calculatorAction("backspace"); else if (event.key === "+") calculatorAction("add"); else if (event.key === "-") calculatorAction("subtract"); else if (event.key === "Enter" || event.key === "=") calculatorAction("equals"); else if (event.key === "Escape") calculatorAction("clear"); });
+
+const loudnessFileInput = $("#loudnessFileInput");
+$("#loudnessBrowseButton").addEventListener("click", () => loudnessFileInput.click());
+$("#loudnessChangeFile").addEventListener("click", () => loudnessFileInput.click());
+setupDropZone($("#loudnessDropZone"), loudnessFileInput, loadLoudnessFile);
+$("#analyzeLoudnessButton").addEventListener("click", runLoudnessAnalysis);
+$("#cancelLoudnessButton").addEventListener("click", () => { if (loudnessTask) loudnessTask.aborted = true; });
+$("#normalizeLoudnessButton").addEventListener("click", runNormalization);
+$("#downloadNormalizedButton").addEventListener("click", downloadNormalizedWav);
+
+initTechnicalForm();
+$("#technicalForm").addEventListener("submit", printTechnicalSheet);
+$("#clearTechnicalForm").addEventListener("click", () => { if (confirm("Vuoi cancellare tutti i dati inseriti nella scheda?")) $("#technicalForm").reset(); });
+window.addEventListener("afterprint", () => { delete document.body.dataset.printMode; });
 
 function downloadCsv(title, rows) {
   const selected = rows.filter((row) => row.selected !== false);
