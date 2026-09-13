@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#f4f5f7" />
+    <meta name="description" content="Utility DVS per l'elaborazione locale dei report Avid." />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+    <title>DVS Utility</title>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <button class="brand-button" id="homeButton" aria-label="Torna alla home">
+          <span class="brand-mark">DVS</span>
+          <span>
+            <strong>DVS Utility</strong>
+            <small>Digital Video Service</small>
+          </span>
+        </button>
+        <div class="privacy-pill">
+          <span class="privacy-dot"></span>
+          Elaborazione locale
+        </div>
+      </header>
+
+      <main>
+        <section class="view active" id="homeView">
+          <div class="hero">
+            <p class="eyebrow">Workspace</p>
+            <h1>Di cosa hai bisogno?</h1>
+            <p>Apri uno strumento DVS. Le elaborazioni avvengono direttamente su questo dispositivo.</p>
+          </div>
+
+          <div class="utility-grid">
+            <button class="utility-card audio-card" id="openAudio">
+              <span class="card-icon" aria-hidden="true">
+                <svg viewBox="0 0 64 64"><path d="M13 38V26m8 19V19m8 31V14m8 32V18m8 22V24m8 12v-8" /></svg>
+              </span>
+              <span class="card-copy">
+                <span class="card-kicker">Disponibile</span>
+                <strong>DCP Audio</strong>
+                <small>Rapporto musicale da EDL Avid</small>
+              </span>
+              <span class="card-arrow">›</span>
+            </button>
+
+            <button class="utility-card soon-card" disabled>
+              <span class="card-icon video-icon" aria-hidden="true">
+                <svg viewBox="0 0 64 64"><rect x="10" y="16" width="44" height="32" rx="8" /><path d="m28 25 12 7-12 7z" /></svg>
+              </span>
+              <span class="card-copy">
+                <span class="card-kicker">Prossimamente</span>
+                <strong>DCP Video</strong>
+                <small>Immagini, foto e repertorio</small>
+              </span>
+            </button>
+
+            <div class="utility-card placeholder-card" aria-hidden="true">
+              <span class="plus-icon">+</span>
+              <span class="card-copy">
+                <strong>Nuova utility</strong>
+                <small>Spazio pronto per il prossimo strumento</small>
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="audioView">
+          <div class="module-heading">
+            <button class="back-button" id="backButton" aria-label="Torna indietro">‹</button>
+            <div>
+              <p class="eyebrow">DVS Utility</p>
+              <h1>DCP Audio</h1>
+              <p>Importa l’EDL completo, scegli le tracce musicali e genera il rapporto.</p>
+            </div>
+          </div>
+
+          <section class="panel import-panel" id="dropZone">
+            <input id="fileInput" type="file" accept=".edl,.txt" hidden />
+            <div class="upload-icon" aria-hidden="true">
+              <svg viewBox="0 0 64 64"><path d="M32 42V14m0 0L21 25m11-11 11 11" /><path d="M14 38v8a6 6 0 0 0 6 6h24a6 6 0 0 0 6-6v-8" /></svg>
+            </div>
+            <div>
+              <h2>Carica il file EDL</h2>
+              <p>Trascinalo qui oppure selezionalo dal Mac.</p>
+            </div>
+            <button class="primary-button" id="browseButton">Scegli file</button>
+            <p class="privacy-note">Il file non lascia questo dispositivo.</p>
+          </section>
+
+          <section class="workspace hidden" id="workspace">
+            <div class="file-summary panel">
+              <div class="file-badge">EDL</div>
+              <div class="file-meta">
+                <strong id="fileName">—</strong>
+                <span id="fileDetails">—</span>
+              </div>
+              <button class="secondary-button" id="changeFile">Cambia file</button>
+            </div>
+
+            <div class="two-column">
+              <section class="panel controls-panel">
+                <div class="panel-title-row">
+                  <div>
+                    <p class="step-label">Passaggio 1</p>
+                    <h2>Tracce musicali</h2>
+                  </div>
+                  <button class="text-button" id="toggleTracks">Deseleziona tutte</button>
+                </div>
+                <p class="muted">Attiva solo le tracce che contengono musica. Le altre saranno ignorate.</p>
+                <div class="track-grid" id="trackGrid"></div>
+
+                <div class="divider"></div>
+
+                <div class="panel-title-row compact">
+                  <div>
+                    <p class="step-label">Passaggio 2</p>
+                    <h2>Genera rapporto</h2>
+                  </div>
+                </div>
+                <button class="primary-button wide" id="generateButton">Elabora DCP Audio</button>
+              </section>
+
+              <section class="panel info-panel">
+                <p class="step-label">Regole applicate</p>
+                <ul>
+                  <li><span>✓</span> Coppie stereo conteggiate una volta</li>
+                  <li><span>✓</span> Tracce mono mantenute</li>
+                  <li><span>✓</span> Dissolvenze incluse</li>
+                  <li><span>✓</span> Pause senza musica accorpate</li>
+                  <li><span>✓</span> Nuovo record dopo un’altra musica</li>
+                </ul>
+              </section>
+            </div>
+
+            <section class="panel results-panel hidden" id="resultsPanel">
+              <div class="results-header">
+                <div>
+                  <p class="step-label">Rapporto musicale</p>
+                  <h2 id="resultTitle">Risultato</h2>
+                  <p class="muted" id="resultSummary"></p>
+                </div>
+                <div class="result-actions">
+                  <button class="secondary-button" id="copyButton">Copia elenco</button>
+                  <button class="secondary-button" id="csvButton">Esporta CSV</button>
+                  <button class="primary-button" id="printButton">Stampa / PDF</button>
+                </div>
+              </div>
+
+              <div class="empty-result hidden" id="emptyResult">
+                Nessuna musica trovata nelle tracce selezionate.
+              </div>
+
+              <div class="table-wrap" id="tableWrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th class="number-column">N.</th>
+                      <th>File musicale</th>
+                      <th>Tracce</th>
+                      <th class="duration-column">Durata</th>
+                      <th class="action-column"><span class="sr-only">Azioni</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="resultBody"></tbody>
+                </table>
+              </div>
+            </section>
+          </section>
+        </section>
+      </main>
+
+      <footer>© Digital Video Service · DVS Utility</footer>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

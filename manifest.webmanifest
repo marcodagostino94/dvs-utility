@@ -1,0 +1,12 @@
+{
+  "name": "DVS Utility",
+  "short_name": "DVS Utility",
+  "description": "Utility DVS per l'elaborazione locale dei report Avid.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f4f5f7",
+  "theme_color": "#f4f5f7",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
