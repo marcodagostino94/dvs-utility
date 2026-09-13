@@ -1,4 +1,4 @@
-const CACHE = "dvs-utility-v3.2";
+const CACHE = "dvs-utility-v3.3";
 const ASSETS = [
   "./",
   "./index.html",
@@ -7,6 +7,7 @@ const ASSETS = [
   "./config.js",
   "./parser.js",
   "./loudness.js",
+  "./technical.js",
   "./manifest.webmanifest",
   "./assets/logos/digital-video-full.png",
   "./assets/icons/dvs-utility-192.png",

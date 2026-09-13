@@ -2,7 +2,7 @@
 
 Web app/PWA indipendente per gli strumenti interni di Digital Video Service, coordinata graficamente con DVS Planning e DVS Gestionale.
 
-## Versione 3.2
+## Versione 3.3
 
 - dashboard principale a riquadri in stile DVS liquid glass;
 - colori coordinati per ogni riquadro: verde Audio, blu Video, ciano Loudness, arancione Scheda Tecnica e viola Calcolatrice;
@@ -27,6 +27,9 @@ Web app/PWA indipendente per gli strumenti interni di Digital Video Service, coo
 - cronologia Timecode immediata: il primo operando e l'operatore compaiono prima del risultato;
 - piste DCP Video selezionabili e deselezionabili singolarmente, con conteggio visibile;
 - Scheda Tecnica RAI con compilazione moderna, 15 servizi e PDF A4;
+- Scheda Tecnica con esito Trasmettibile/Non trasmettibile, TC finale e durata automatica a 25 fps;
+- PDF tecnico su una sola pagina A4, con omissione automatica delle righe servizio vuote;
+- storico Supabase delle Schede Tecniche con riapertura, modifica, eliminazione e PDF automatico;
 - menu Servizio con Anteprima, Programma, Orologio, Barre colore, Neri commerciali, Nero, Intro, Coda finale e Coda finale + fondini;
 - Loudness locale per WAV PCM/Float mono e multicanale fino a 8 canali;
 - controllo RAI di Program Loudness, Maximum True Peak e LRA;
@@ -73,6 +76,10 @@ Per una nuova installazione, eseguire nel SQL Editor del progetto Supabase dedic
 Se la versione Audio era già installata, eseguire una sola volta:
 
 `database/002_dcp_video_history.sql`
+
+Per abilitare lo storico delle Schede Tecniche, eseguire una sola volta:
+
+`database/003_technical_sheets_history.sql`
 
 ## Avvio locale
 

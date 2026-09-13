@@ -1,5 +1,6 @@
 import { buildAudioReport, buildVideoReport, framesToTc, parseEdl } from "./parser.js";
 import { analyzeWav, loudnessLimits, normalizeWav, parseWav } from "./loudness.js";
+import { technicalDuration } from "./technical.js";
 
 const $ = (selector) => document.querySelector(selector);
 const views = {
@@ -22,6 +23,7 @@ let selectedVideoTracks = new Set();
 let videoRows = [];
 let currentVideoSavedId = null;
 let historyOrigin = "audio";
+let currentTechnicalSavedId = null;
 
 function toast(message) {
   const element = $("#toast");
@@ -549,12 +551,20 @@ function downloadNormalizedWav() {
 // SCHEDA TECNICA RAI
 const serviceOptions = ["", "ANTEPRIMA", "PROGRAMMA", "OROLOGIO", "BARRE COLORE", "NERI COMMERCIALI", "NERO", "INTRO", "CODA FINALE", "CODA FINALE + FONDINI", "ALTRO"];
 
+function updateTechnicalDuration(row) {
+  const start = row.querySelector('[name^="serviceTc"]');
+  const end = row.querySelector('[name^="serviceEnd"]');
+  const duration = row.querySelector('[name^="serviceDuration"]');
+  duration.value = technicalDuration(start.value, end.value);
+}
+
 function initTechnicalForm() {
   const services = $("#technicalServices");
   for (let index = 1; index <= 15; index += 1) {
     const row = document.createElement("div"); row.className = "service-editor-row";
     const options = serviceOptions.map((value) => `<option value="${value}">${value || "Seleziona…"}</option>`).join("");
-    row.innerHTML = `<b>${index}</b><input name="serviceTc${index}" inputmode="numeric" placeholder="00:00:00:00"><input name="serviceDuration${index}" inputmode="numeric" placeholder="00:00:00:00"><select name="serviceName${index}">${options}</select>`;
+    row.innerHTML = `<b>${index}</b><input name="serviceTc${index}" inputmode="numeric" placeholder="00:00:00:00"><input name="serviceEnd${index}" inputmode="numeric" placeholder="00:00:00:00"><input name="serviceDuration${index}" readonly placeholder="00:00:00"><select name="serviceName${index}">${options}</select>`;
+    row.querySelectorAll('input:not([readonly])').forEach((input) => input.addEventListener("input", () => updateTechnicalDuration(row)));
     const select = row.querySelector("select");
     select.addEventListener("change", () => {
       if (select.value !== "ALTRO") return;
@@ -566,6 +576,108 @@ function initTechnicalForm() {
   }
   const channels = $("#technicalChannels");
   for (let index = 1; index <= 8; index += 1) channels.insertAdjacentHTML("beforeend", `<label><input type="checkbox" name="channels" value="CH${index}"> CH${index}</label>`);
+}
+
+function technicalFormData() {
+  const result = {};
+  [...$("#technicalForm").elements].forEach((field) => {
+    if (!field.name || field.type === "button" || field.type === "submit") return;
+    if (field.type === "checkbox") {
+      if (!Array.isArray(result[field.name])) result[field.name] = [];
+      if (field.checked) result[field.name].push(field.value);
+    } else if (field.type === "radio") {
+      if (field.checked) result[field.name] = field.value;
+    } else result[field.name] = field.value;
+  });
+  return result;
+}
+
+function restoreTechnicalForm(saved = {}) {
+  const form = $("#technicalForm"); form.reset();
+  [...form.elements].forEach((field) => {
+    if (!field.name || !(field.name in saved)) return;
+    if (field.type === "checkbox") field.checked = Array.isArray(saved[field.name]) && saved[field.name].includes(field.value);
+    else if (field.type === "radio") field.checked = saved[field.name] === field.value;
+    else {
+      if (field.tagName === "SELECT" && saved[field.name] && ![...field.options].some((option) => option.value === saved[field.name])) field.add(new Option(saved[field.name], saved[field.name]), 1);
+      field.value = saved[field.name] ?? "";
+    }
+  });
+  document.querySelectorAll("#technicalServices .service-editor-row").forEach((row) => {
+    const end = row.querySelector('[name^="serviceEnd"]');
+    if (end.value) updateTechnicalDuration(row);
+  });
+}
+
+function updateTechnicalButtons() {
+  $("#saveTechnicalButton").textContent = currentTechnicalSavedId ? "Aggiorna scheda" : "Salva scheda";
+  $("#deleteTechnicalButton").classList.toggle("hidden", !currentTechnicalSavedId);
+}
+
+function showTechnicalLanding() {
+  $("#technicalEntryGrid").classList.remove("hidden");
+  $("#technicalWorkspace").classList.add("hidden");
+  $("#technicalHistoryPanel").classList.add("hidden");
+  $("#technicalBackButton").classList.add("hidden");
+  showView("technical");
+}
+
+function newTechnicalSheet() {
+  currentTechnicalSavedId = null; restoreTechnicalForm({}); updateTechnicalButtons();
+  $("#technicalEntryGrid").classList.add("hidden");
+  $("#technicalHistoryPanel").classList.add("hidden");
+  $("#technicalWorkspace").classList.remove("hidden");
+  $("#technicalBackButton").classList.remove("hidden");
+  showView("technical");
+}
+
+async function saveTechnicalSheet() {
+  const form = $("#technicalForm");
+  if (!form.reportValidity()) return false;
+  if (!db) { toast("Database non configurato"); return false; }
+  const formData = technicalFormData();
+  const payload = { title: String(formData.title || "Scheda tecnica senza titolo"), sheet_data: formData };
+  const button = $("#saveTechnicalButton"); button.disabled = true;
+  try {
+    const result = currentTechnicalSavedId
+      ? await db.from("technical_sheets").update(payload).eq("id", currentTechnicalSavedId).select("id").single()
+      : await db.from("technical_sheets").insert(payload).select("id").single();
+    if (result.error) throw result.error;
+    currentTechnicalSavedId = result.data.id; updateTechnicalButtons();
+    toast("Scheda tecnica salvata nello storico"); return true;
+  } catch (error) {
+    toast(error.code === "42P01" ? "Esegui la migrazione SQL della Scheda Tecnica" : `Salvataggio non riuscito: ${error.message}`); return false;
+  } finally { button.disabled = false; }
+}
+
+async function loadTechnicalHistory() {
+  $("#technicalEntryGrid").classList.add("hidden"); $("#technicalWorkspace").classList.add("hidden");
+  $("#technicalHistoryPanel").classList.remove("hidden"); $("#technicalBackButton").classList.remove("hidden"); showView("technical");
+  const list = $("#technicalHistoryList"); list.innerHTML = '<div class="history-loading">Caricamento storico…</div>';
+  $("#emptyTechnicalHistory").classList.add("hidden");
+  if (!db) { list.innerHTML = '<div class="history-error">Database non configurato.</div>'; return; }
+  const { data, error } = await db.from("technical_sheets").select("id,title,sheet_data,created_at,updated_at").order("updated_at", { ascending: false });
+  if (error) { list.innerHTML = `<div class="history-error">Storico non disponibile: ${error.code === "42P01" ? "esegui la migrazione SQL della Scheda Tecnica" : error.message}</div>`; return; }
+  list.replaceChildren(); $("#emptyTechnicalHistory").classList.toggle("hidden", data.length > 0);
+  data.forEach((item) => {
+    const button = document.createElement("button"); button.type = "button"; button.className = "history-row";
+    button.innerHTML = '<span class="history-row-icon">SCHEDA</span><span><strong></strong><small></small></span><em></em><b>›</b>';
+    button.querySelector("strong").textContent = item.title;
+    button.querySelector("small").textContent = `Aggiornata ${formatDate(item.updated_at)}`;
+    button.querySelector("em").textContent = formatDate(item.created_at);
+    button.addEventListener("click", () => {
+      currentTechnicalSavedId = item.id; restoreTechnicalForm(item.sheet_data || {}); updateTechnicalButtons();
+      $("#technicalHistoryPanel").classList.add("hidden"); $("#technicalWorkspace").classList.remove("hidden"); showView("technical");
+    });
+    list.append(button);
+  });
+}
+
+async function deleteTechnicalSheet() {
+  if (!currentTechnicalSavedId || !confirm("Eliminare definitivamente questa scheda tecnica dallo storico?")) return;
+  const { error } = await db.from("technical_sheets").delete().eq("id", currentTechnicalSavedId);
+  if (error) return toast(`Eliminazione non riuscita: ${error.message}`);
+  toast("Scheda tecnica eliminata dallo storico"); showTechnicalLanding();
 }
 
 function formatTechnicalDate(value) {
@@ -582,18 +694,24 @@ function buildTechnicalPrint() {
     const name = element.dataset.print; const raw = String(data.get(name) || ""); element.textContent = /Date|editStart|editEnd/.test(name) ? formatTechnicalDate(raw) : raw;
   });
   const services = $("#technicalPrintServices"); services.replaceChildren();
+  let printedIndex = 0;
   for (let index = 1; index <= 15; index += 1) {
-    const row = document.createElement("div"); row.innerHTML = `<b>${index}</b><span></span><span></span><span></span>`;
-    row.children[1].textContent = data.get(`serviceTc${index}`) || ""; row.children[2].textContent = data.get(`serviceDuration${index}`) || ""; row.children[3].textContent = data.get(`serviceName${index}`) || ""; services.append(row);
+    const start = data.get(`serviceTc${index}`) || ""; const duration = data.get(`serviceDuration${index}`) || ""; const name = data.get(`serviceName${index}`) || "";
+    if (!start && !duration && !name) continue;
+    printedIndex += 1;
+    const row = document.createElement("div"); row.innerHTML = `<b>${printedIndex}</b><span></span><span></span><span></span>`;
+    row.children[1].textContent = start; row.children[2].textContent = duration; row.children[3].textContent = name; services.append(row);
   }
+  $("#technicalPrintSheet").classList.toggle("dense-services", printedIndex > 9);
   fillChecklist($("#printDelivery"), ["BETA SP", "IMX", "XDCAM", "ALTRO"], data.getAll("delivery"));
   fillChecklist($("#printAudioType"), ["MONO", "STEREO", "DOLBY", "ALTRO"], data.getAll("audioType"));
   fillChecklist($("#printChannels"), Array.from({ length: 8 }, (_, i) => `CH${i + 1}`), data.getAll("channels"));
 }
 
-function printTechnicalSheet(event) {
+async function printTechnicalSheet(event) {
   event.preventDefault();
   if (!$("#technicalForm").reportValidity()) return;
+  if (!await saveTechnicalSheet()) return;
   buildTechnicalPrint(); document.body.dataset.printMode = "technical"; window.print();
 }
 
@@ -609,8 +727,8 @@ $("#openCalculatorNav").addEventListener("click", () => showView("calculator"));
 $("#iphoneCalculatorNav").addEventListener("click", () => showView("calculator"));
 $("#openLoudness").addEventListener("click", () => showView("loudness"));
 $("#openLoudnessNav").addEventListener("click", () => showView("loudness"));
-$("#openTechnical").addEventListener("click", () => showView("technical"));
-$("#openTechnicalNav").addEventListener("click", () => showView("technical"));
+$("#openTechnical").addEventListener("click", showTechnicalLanding);
+$("#openTechnicalNav").addEventListener("click", showTechnicalLanding);
 $("#openHomeNav").addEventListener("click", () => showView("home"));
 $("#iphoneHomeNav").addEventListener("click", () => showView("home"));
 $("#homeButton").addEventListener("click", () => showView("home"));
@@ -668,7 +786,15 @@ $("#downloadNormalizedButton").addEventListener("click", downloadNormalizedWav);
 
 initTechnicalForm();
 $("#technicalForm").addEventListener("submit", printTechnicalSheet);
-$("#clearTechnicalForm").addEventListener("click", () => { if (confirm("Vuoi cancellare tutti i dati inseriti nella scheda?")) $("#technicalForm").reset(); });
+$("#clearTechnicalForm").addEventListener("click", () => { if (confirm("Vuoi cancellare tutti i dati inseriti nella scheda?")) restoreTechnicalForm({}); });
+$("#technicalBackButton").addEventListener("click", showTechnicalLanding);
+$("#newTechnicalButton").addEventListener("click", newTechnicalSheet);
+$("#openTechnicalHistoryButton").addEventListener("click", loadTechnicalHistory);
+$("#technicalHistoryBackInline").addEventListener("click", showTechnicalLanding);
+$("#technicalHistoryNew").addEventListener("click", newTechnicalSheet);
+$("#newTechnicalFromFormButton").addEventListener("click", newTechnicalSheet);
+$("#saveTechnicalButton").addEventListener("click", saveTechnicalSheet);
+$("#deleteTechnicalButton").addEventListener("click", deleteTechnicalSheet);
 window.addEventListener("afterprint", () => { delete document.body.dataset.printMode; });
 
 function downloadCsv(title, rows) {

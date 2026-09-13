@@ -54,7 +54,7 @@
             <span class="nav-icon info-icon" aria-hidden="true">i</span>
             <span>Informazioni</span>
           </button>
-          <span class="build-pill">v3.2</span>
+          <span class="build-pill">v3.3</span>
         </div>
       </aside>
 
@@ -336,10 +336,16 @@
         </section>
 
         <section class="view technical-view" id="technicalView">
-          <header class="module-topbar"><div><span>Utility</span><strong>Scheda Tecnica</strong></div></header>
+          <header class="module-topbar"><button class="back-button hidden" id="technicalBackButton" aria-label="Torna a inserimento e storico">‹</button><div><span>Utility</span><strong>Scheda Tecnica</strong></div><span class="secure-label"><i></i> Database DVS</span></header>
           <div class="module-content technical-content">
             <div class="module-heading"><p class="eyebrow">DOCUMENTO RAI</p><h1>Scheda Tecnica</h1></div>
-            <form id="technicalForm" class="technical-form">
+            <div class="audio-entry-grid" id="technicalEntryGrid">
+              <button class="panel technical-entry-card" id="newTechnicalButton" type="button"><span class="technical-entry-icon">＋</span><span><strong>Inserisci nuova scheda</strong><small>Compila un nuovo documento tecnico RAI</small></span><b>›</b></button>
+              <button class="panel technical-entry-card" id="openTechnicalHistoryButton" type="button"><span class="technical-entry-icon history-icon">≡</span><span><strong>Storico schede</strong><small>Riapri, modifica, elimina o genera nuovamente il PDF</small></span><b>›</b></button>
+            </div>
+
+            <div class="hidden" id="technicalWorkspace">
+              <form id="technicalForm" class="technical-form">
               <section class="panel form-section">
                 <div class="section-heading"><div><p class="step-label">PROGRAMMA</p><h2>Dati principali</h2></div><button class="text-button" id="clearTechnicalForm" type="button">Svuota scheda</button></div>
                 <div class="form-grid two"><label><span>Titolo</span><input name="title" required></label><label><span>Sottotitolo</span><input name="subtitle"></label></div>
@@ -348,7 +354,7 @@
 
               <section class="panel form-section">
                 <div class="section-heading"><div><p class="step-label">CONTENUTO</p><h2>Servizi</h2></div><span class="section-note">15 righe previste dal modello RAI</span></div>
-                <div class="services-editor"><div class="service-editor-head"><span>N.</span><span>TC iniziale</span><span>Durata</span><span>Servizio</span></div><div id="technicalServices"></div></div>
+                <div class="services-editor"><div class="service-editor-head"><span>N.</span><span>TC iniziale</span><span>TC finale</span><span>Durata</span><span>Servizio</span></div><div id="technicalServices"></div></div>
               </section>
 
               <section class="panel form-section">
@@ -366,14 +372,26 @@
                 <label class="full-field"><span>Note sulle lavorazioni e sul segnale riprodotto</span><textarea name="notes" rows="3"></textarea></label>
               </section>
 
+              <section class="panel form-section transmission-status-section">
+                <p class="step-label">ESITO</p><h2>Trasmettibilità</h2>
+                <div class="status-choice"><label><input type="radio" name="transmissionStatus" value="TRASMETTIBILE" required><span>TRASMETTIBILE</span></label><label><input type="radio" name="transmissionStatus" value="NON TRASMETTIBILE"><span>NON TRASMETTIBILE</span></label></div>
+              </section>
+
               <section class="panel form-section">
                 <p class="step-label">VERIFICHE</p><h2>Visioni e trasmissioni</h2>
                 <div class="form-grid three"><label><span>Data visione tecnica</span><input type="date" name="technicalDate"></label><label><span>TC start</span><input name="technicalTc" placeholder="00:00:00:00"></label><label><span>Firma tecnico o montatore</span><input name="technicalSignature"></label><label><span>Data visione artistica</span><input type="date" name="artisticDate"></label><label><span>Data trasmissione</span><input type="date" name="broadcastDate"></label><label><span>Firma regista o Resp. RAI</span><input name="artisticSignature"></label></div>
                 <div class="transmission-editor"><div><span>Data</span><span>Rete</span><span>Firma</span></div><div><input type="date" name="txDate1"><input name="txNetwork1"><input name="txSignature1"></div><div><input type="date" name="txDate2"><input name="txNetwork2"><input name="txSignature2"></div></div>
               </section>
 
-              <div class="technical-actions"><button class="primary-button" id="technicalPdfButton" type="submit">PDF</button></div>
-            </form>
+              <div class="technical-actions"><button class="secondary-button" id="newTechnicalFromFormButton" type="button">Nuova scheda</button><button class="save-button" id="saveTechnicalButton" type="button">Salva scheda</button><button class="primary-button" id="technicalPdfButton" type="submit">PDF</button><button class="danger-button hidden" id="deleteTechnicalButton" type="button">Elimina scheda</button></div>
+              </form>
+            </div>
+
+            <section class="panel history-panel hidden" id="technicalHistoryPanel">
+              <div class="history-toolbar"><button class="secondary-button" id="technicalHistoryBackInline">‹ Torna indietro</button><button class="primary-button" id="technicalHistoryNew">+ Nuova scheda</button></div>
+              <div class="history-list" id="technicalHistoryList"></div>
+              <div class="empty-result hidden" id="emptyTechnicalHistory">Non ci sono ancora schede tecniche salvate.</div>
+            </section>
           </div>
         </section>
 
@@ -404,7 +422,7 @@
               <h2>DVS Utility</h2>
               <p>Applicazione per gli strumenti tecnici di Digital Video Service.</p>
               <dl>
-                <div><dt>Versione</dt><dd>v3.2</dd></div>
+                <div><dt>Versione</dt><dd>v3.3</dd></div>
                 <div><dt>Ideazione e sviluppo</dt><dd>Marco D'Agostino per Digital Video Service</dd></div>
                 <div><dt>Sincronizzazione</dt><dd>Supabase Database</dd></div>
               </dl>
@@ -442,6 +460,7 @@
       </div>
       <div class="rai-company"><div><strong>SOCIETÀ</strong><span data-print="company"></span></div><div><strong>N° CONTRATTO</strong><span data-print="contract"></span><strong>INDIRIZZO</strong><span data-print="address"></span></div><div><strong>RIF. PROVVISORIO</strong><span data-print="provisional"></span><strong>TELEFONO</strong><span data-print="phone"></span></div></div>
       <section class="rai-box"><h2>MONTAGGIO</h2><div class="rai-four"><strong>DATA INIZIO</strong><span data-print="editStart"></span><strong>DATA TERMINE</strong><span data-print="editEnd"></span></div><div class="rai-line"><strong>APPARATI UTILIZZATI</strong><span data-print="equipment"></span></div><div class="rai-notes" data-print="notes"></div></section>
+      <div class="rai-transmission-status" data-print="transmissionStatus"></div>
       <section class="rai-box"><h2>VISIONE TECNICA</h2><div class="rai-sign-grid"><div><strong>DATA</strong><span data-print="technicalDate"></span><strong>TC START</strong><span data-print="technicalTc"></span></div><div>Firma tecnico o Montatore<strong data-print="technicalSignature"></strong></div></div></section>
       <section class="rai-box"><h2>VISIONE ARTISTICA</h2><div class="rai-sign-grid"><div><strong>DATA</strong><span data-print="artisticDate"></span><strong>DATA TRASM.</strong><span data-print="broadcastDate"></span></div><div>Firma Regista o Resp. RAI<strong data-print="artisticSignature"></strong></div></div></section>
       <section class="rai-box rai-transmissions"><h2>TRASMISSIONI</h2><div class="tx-row tx-head"><strong>DATA</strong><strong>RETE</strong><strong>FIRMA</strong></div><div class="tx-row"><span data-print="txDate1"></span><span data-print="txNetwork1"></span><span data-print="txSignature1"></span></div><div class="tx-row"><span data-print="txDate2"></span><span data-print="txNetwork2"></span><span data-print="txSignature2"></span></div></section>
