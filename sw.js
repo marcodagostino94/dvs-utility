@@ -1,4 +1,4 @@
-const CACHE = "dvs-utility-v3.3";
+const CACHE = "dvs-utility-v3.4";
 const ASSETS = [
   "./",
   "./index.html",
@@ -10,8 +10,13 @@ const ASSETS = [
   "./technical.js",
   "./manifest.webmanifest",
   "./assets/logos/digital-video-full.png",
+  "./assets/icons/favicon.ico",
+  "./assets/icons/dvs-utility-32.png",
+  "./assets/icons/dvs-utility-64.png",
+  "./assets/icons/dvs-utility-180.png",
   "./assets/icons/dvs-utility-192.png",
-  "./assets/icons/dvs-utility-512.png"
+  "./assets/icons/dvs-utility-512.png",
+  "./assets/icons/dvs-utility-1024.png"
 ];
 
 self.addEventListener("install", (event) => {

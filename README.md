@@ -2,13 +2,14 @@
 
 Web app/PWA indipendente per gli strumenti interni di Digital Video Service, coordinata graficamente con DVS Planning e DVS Gestionale.
 
-## Versione 3.3
+## Versione 3.4
 
 - dashboard principale a riquadri in stile DVS liquid glass;
 - colori coordinati per ogni riquadro: verde Audio, blu Video, ciano Loudness, arancione Scheda Tecnica e viola Calcolatrice;
 - navigazione desktop e mobile coordinata;
 - logo Digital Video originale;
 - icona Utility con bagliore verde;
+- icona coordinata Utility originale applicata a favicon, iPhone e manifest PWA, con formati derivati dal master PNG 1024 px;
 - modulo DCP Audio invariato nella logica e ottimizzato per Mac, iPhone e iPad.
 - titolo del DCP modificabile;
 - tabella finale senza la colonna tecnica delle tracce;
