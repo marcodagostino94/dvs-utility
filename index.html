@@ -56,7 +56,7 @@
             <span class="nav-icon info-icon" aria-hidden="true">i</span>
             <span>Informazioni</span>
           </button>
-          <span class="build-pill">v3.4</span>
+          <span class="build-pill">v3.5</span>
         </div>
       </aside>
 
@@ -400,15 +400,16 @@
         <section class="view history-view" id="historyView">
           <header class="module-topbar">
             <button class="back-button" id="historyBackButton" aria-label="Torna indietro">‹</button>
-            <div><span>Utility</span><strong>Storico DCP</strong></div>
+            <div><span>Utility</span><strong id="historyHeaderTitle">Storico DCP Audio</strong></div>
             <span class="secure-label"><i></i> Database DVS</span>
           </header>
           <div class="module-content">
             <div class="module-heading history-heading">
-              <p class="eyebrow">ARCHIVIO</p><h1>Storico DCP</h1>
+              <p class="eyebrow">ARCHIVIO</p><h1 id="historyPageTitle">Storico DCP Audio</h1>
             </div>
             <section class="panel history-panel">
               <div class="history-toolbar"><button class="secondary-button" id="historyBackInline">‹ Torna indietro</button><button class="primary-button" id="historyNewDcp">+ Nuovo DCP Audio</button></div>
+              <div class="history-search-bar"><label class="video-search history-search"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><input id="historySearchInput" type="search" placeholder="Cerca per titolo"><button id="clearHistorySearch" type="button" aria-label="Cancella ricerca">×</button></label><span id="historyCount"></span></div>
               <div class="history-list" id="historyList"></div>
               <div class="empty-result hidden" id="emptyHistory">Non ci sono ancora DCP salvati.</div>
             </section>
@@ -424,7 +425,7 @@
               <h2>DVS Utility</h2>
               <p>Applicazione per gli strumenti tecnici di Digital Video Service.</p>
               <dl>
-                <div><dt>Versione</dt><dd>v3.4</dd></div>
+                <div><dt>Versione</dt><dd>v3.5</dd></div>
                 <div><dt>Ideazione e sviluppo</dt><dd>Marco D'Agostino per Digital Video Service</dd></div>
                 <div><dt>Sincronizzazione</dt><dd>Supabase Database</dd></div>
               </dl>

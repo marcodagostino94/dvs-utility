@@ -1,6 +1,7 @@
 import { buildAudioReport, buildVideoReport, framesToTc, parseEdl } from "./parser.js";
 import { analyzeWav, loudnessLimits, normalizeWav, parseWav } from "./loudness.js";
 import { technicalDuration } from "./technical.js";
+import { filterHistoryItems } from "./history.js";
 
 const $ = (selector) => document.querySelector(selector);
 const views = {
@@ -23,6 +24,7 @@ let selectedVideoTracks = new Set();
 let videoRows = [];
 let currentVideoSavedId = null;
 let historyOrigin = "audio";
+let historyItems = [];
 let currentTechnicalSavedId = null;
 
 function toast(message) {
@@ -297,22 +299,16 @@ async function deleteReport(type) {
   isVideo ? newVideoDcp() : newAudioDcp();
 }
 
-// STORICO UNICO AUDIO / VIDEO
+// STORICI DCP SEPARATI AUDIO / VIDEO
 function formatDate(value) {
   return new Intl.DateTimeFormat("it-IT", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
-async function loadHistory(origin = "audio") {
-  historyOrigin = origin;
-  $("#historyNewDcp").textContent = origin === "video" ? "+ Nuovo DCP Video" : "+ Nuovo DCP Audio";
-  showView("history");
-  const list = $("#historyList"); list.innerHTML = '<div class="history-loading">Caricamento storico…</div>';
-  $("#emptyHistory").classList.add("hidden");
-  if (!db) { list.innerHTML = '<div class="history-error">Database non configurato.</div>'; return; }
-  const { data, error } = await db.from("dcp_audio_reports").select("id,title,report_type,rows,created_at,updated_at").order("updated_at", { ascending: false });
-  if (error) { list.innerHTML = `<div class="history-error">Storico non disponibile: ${error.code === "42703" ? "esegui la migrazione database della nuova versione" : error.message}</div>`; return; }
-  list.replaceChildren(); $("#emptyHistory").classList.toggle("hidden", data.length > 0);
-  data.forEach((item) => {
+function renderHistoryItems() {
+  const list = $("#historyList");
+  const visible = filterHistoryItems(historyItems, historyOrigin, $("#historySearchInput").value);
+  list.replaceChildren();
+  visible.forEach((item) => {
     const type = item.report_type === "video" ? "video" : "audio";
     const button = document.createElement("button"); button.type = "button"; button.className = "history-row";
     button.innerHTML = `<span class="history-row-icon"></span><span><strong></strong><small></small></span><em></em><b>›</b>`;
@@ -322,6 +318,29 @@ async function loadHistory(origin = "audio") {
     button.querySelector("em").textContent = formatDate(item.created_at);
     button.addEventListener("click", () => openSavedReport({ ...item, report_type: type })); list.append(button);
   });
+  const typeLabel = historyOrigin === "video" ? "Video" : "Audio";
+  $("#historyCount").textContent = `${visible.length} di ${historyItems.length} DCP ${typeLabel}`;
+  const empty = $("#emptyHistory");
+  empty.textContent = historyItems.length ? "Nessun DCP corrisponde alla ricerca." : `Non ci sono ancora DCP ${typeLabel} salvati.`;
+  empty.classList.toggle("hidden", visible.length > 0);
+}
+
+async function loadHistory(origin = "audio") {
+  historyOrigin = origin;
+  const typeLabel = origin === "video" ? "Video" : "Audio";
+  $("#historyNewDcp").textContent = `+ Nuovo DCP ${typeLabel}`;
+  $("#historyHeaderTitle").textContent = `Storico DCP ${typeLabel}`;
+  $("#historyPageTitle").textContent = `Storico DCP ${typeLabel}`;
+  $("#historySearchInput").value = "";
+  historyItems = [];
+  showView("history");
+  const list = $("#historyList"); list.innerHTML = '<div class="history-loading">Caricamento storico…</div>';
+  $("#historyCount").textContent = "";
+  $("#emptyHistory").classList.add("hidden");
+  if (!db) { list.innerHTML = '<div class="history-error">Database non configurato.</div>'; return; }
+  const { data, error } = await db.from("dcp_audio_reports").select("id,title,report_type,rows,created_at,updated_at").eq("report_type", origin).order("updated_at", { ascending: false });
+  if (error) { list.innerHTML = `<div class="history-error">Storico non disponibile: ${error.code === "42703" ? "esegui la migrazione database della nuova versione" : error.message}</div>`; return; }
+  historyItems = filterHistoryItems(data, origin); renderHistoryItems();
 }
 
 function openSavedReport(item) {
@@ -769,6 +788,8 @@ $("#openVideoHistoryButton").addEventListener("click", () => loadHistory("video"
 $("#historyBackButton").addEventListener("click", () => historyOrigin === "video" ? showVideoLanding() : showAudioLanding());
 $("#historyBackInline").addEventListener("click", () => historyOrigin === "video" ? showVideoLanding() : showAudioLanding());
 $("#historyNewDcp").addEventListener("click", () => historyOrigin === "video" ? newVideoDcp() : newAudioDcp());
+$("#historySearchInput").addEventListener("input", renderHistoryItems);
+$("#clearHistorySearch").addEventListener("click", () => { $("#historySearchInput").value = ""; renderHistoryItems(); $("#historySearchInput").focus(); });
 
 $("#fpsSelector").addEventListener("click", (event) => { const button = event.target.closest("button[data-fps]"); if (!button) return; calcFps = Number(button.dataset.fps); $("#fpsSelector").querySelectorAll("button").forEach((item) => item.classList.toggle("active", item === button)); $("#fpsLabel").textContent = `${calcFps} fps`; resetCalculation(); });
 $("#calculatorKeypad").addEventListener("click", (event) => { const button = event.target.closest("button"); if (!button) return; if (button.dataset.digit != null) enterDigit(button.dataset.digit); else if (button.dataset.action) calculatorAction(button.dataset.action); });

@@ -2,7 +2,7 @@
 
 Web app/PWA indipendente per gli strumenti interni di Digital Video Service, coordinata graficamente con DVS Planning e DVS Gestionale.
 
-## Versione 3.4
+## Versione 3.5
 
 - dashboard principale a riquadri in stile DVS liquid glass;
 - colori coordinati per ogni riquadro: verde Audio, blu Video, ciano Loudness, arancione Scheda Tecnica e viola Calcolatrice;
@@ -14,6 +14,7 @@ Web app/PWA indipendente per gli strumenti interni di Digital Video Service, coo
 - titolo del DCP modificabile;
 - tabella finale senza la colonna tecnica delle tracce;
 - storico DCP condiviso tramite Supabase, senza archiviare l'EDL;
+- storici DCP Audio e DCP Video separati, ciascuno con ricerca immediata per titolo;
 - salvataggio esplicito oppure automatico quando si genera il PDF;
 - riapertura, modifica, aggiornamento, eliminazione e nuovo PDF dei DCP salvati.
 - home compatta senza scorrimento su desktop;

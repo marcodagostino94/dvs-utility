@@ -189,6 +189,9 @@ td.duration-column { color: #252b31; font-weight: 780; font-variant-numeric: tab
 .remove-button { width: 30px; height: 30px; color: #a23442; background: rgba(207,29,49,.08); font-size: 17px; }
 .history-panel { padding: 24px; }
 .history-toolbar { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+.history-search-bar { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.history-search { min-width: 0; }
+.history-search-bar > span { flex: 0 0 auto; color: var(--muted); font-size: 10px; font-weight: 720; }
 .history-list { display: grid; gap: 10px; }
 .history-row { width: 100%; display: grid; grid-template-columns: 48px minmax(0,1fr) auto 20px; align-items: center; gap: 14px; padding: 14px; border: 1px solid var(--line); border-radius: 16px; color: var(--text); text-align: left; background: rgba(255,255,255,.48); cursor: pointer; transition: 150ms ease; }
 .history-row:hover { transform: translateY(-1px); border-color: rgba(50,216,116,.28); background: rgba(255,255,255,.75); }
@@ -421,6 +424,8 @@ td.duration-column { color: #252b31; font-weight: 780; font-variant-numeric: tab
   .result-actions .primary-button, .result-actions .danger-button { grid-column: 1 / -1; }
   .history-row { grid-template-columns: 44px minmax(0,1fr) 16px; }
   .history-row em { display: none; }
+  .history-search-bar { align-items: stretch; flex-direction: column; gap: 8px; }
+  .history-search { min-width: 100%; }
   .info-page-header { min-height: 72px; padding: 14px 18px; }
   .info-page-body { width: min(100% - 24px, 620px); padding: 24px 0 40px; }
   .information-card { padding: 22px; }
