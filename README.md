@@ -2,7 +2,9 @@
 
 Web app/PWA indipendente per gli strumenti interni di Digital Video Service, coordinata graficamente con DVS Planning e DVS Gestionale.
 
-## Versione 3.5
+## Versione 3.6
+
+- Menu laterale coordinato al Planning: stessi tab Liquid Glass, con accento verde Utility.
 
 - dashboard principale a riquadri in stile DVS liquid glass;
 - colori coordinati per ogni riquadro: verde Audio, blu Video, ciano Loudness, arancione Scheda Tecnica e viola Calcolatrice;
