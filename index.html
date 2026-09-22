@@ -27,7 +27,7 @@
         <nav class="desktop-nav" aria-label="Navigazione principale">
           <button class="nav-item active" id="openHomeNav">
             <span class="nav-icon grid-icon" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-            <span>Utility</span>
+            <span>Dashboard</span>
           </button>
           <button class="nav-item" id="openAudioNav">
             <span class="nav-icon sound-icon" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
@@ -56,7 +56,7 @@
             <span class="nav-icon info-icon" aria-hidden="true">i</span>
             <span>Informazioni</span>
           </button>
-          <span class="build-pill">v3.6</span>
+          <span class="build-pill">v3.7</span>
         </div>
       </aside>
 
@@ -140,13 +140,13 @@
 
             <div class="audio-entry-grid" id="audioEntryGrid">
               <section class="panel import-panel" id="dropZone">
-                <input id="fileInput" type="file" accept=".edl,.txt" hidden />
+                <input id="fileInput" type="file" accept=".edl,.txt" multiple hidden />
                 <div class="upload-icon" aria-hidden="true">
                   <svg viewBox="0 0 64 64"><path d="M32 42V14m0 0L21 25m11-11 11 11" /><path d="M14 38v8a6 6 0 0 0 6 6h24a6 6 0 0 0 6-6v-8" /></svg>
                 </div>
-                <div><h2>Carica il file EDL</h2><p>Trascinalo qui oppure selezionalo dal Mac.</p></div>
-                <button class="primary-button" id="browseButton">Scegli file</button>
-                <p class="privacy-note"><span>✓</span> Il file non lascia questo dispositivo</p>
+                <div><h2>Carica uno o più file EDL</h2><p>Trascinali qui oppure selezionali insieme dal Mac.</p></div>
+                <button class="primary-button" id="browseButton">Scegli file EDL</button>
+                <p class="privacy-note"><span>✓</span> Ogni EDL genera un DCP indipendente</p>
               </section>
 
               <button class="panel history-entry-card" id="openHistoryButton" type="button">
@@ -157,7 +157,8 @@
             </div>
 
             <section class="workspace hidden" id="workspace">
-              <div class="file-summary panel">
+              <div class="batch-list hidden" id="audioBatchList"></div>
+              <div class="file-summary panel" id="audioFileSummary">
                 <div class="file-badge">EDL</div>
                 <div class="file-meta"><strong id="fileName">—</strong><span id="fileDetails">—</span></div>
                 <button class="secondary-button" id="changeFile">Cambia file</button>
@@ -212,11 +213,11 @@
             <div class="module-heading"><p class="eyebrow">RAPPORTO IMMAGINI</p><h1>DCP Video</h1></div>
             <div class="audio-entry-grid" id="videoEntryGrid">
               <section class="panel import-panel" id="videoDropZone">
-                <input id="videoFileInput" type="file" accept=".edl,.txt" hidden />
+                <input id="videoFileInput" type="file" accept=".edl,.txt" multiple hidden />
                 <div class="upload-icon video-upload-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 42V14m0 0L21 25m11-11 11 11"/><path d="M14 38v8a6 6 0 0 0 6 6h24a6 6 0 0 0 6-6v-8"/></svg></div>
-                <div><h2>Carica il file EDL</h2><p>Trascinalo qui oppure selezionalo dal Mac.</p></div>
-                <button class="primary-button" id="videoBrowseButton">Scegli file</button>
-                <p class="privacy-note"><span>✓</span> Il file EDL non viene salvato</p>
+                <div><h2>Carica uno o più file EDL</h2><p>Trascinali qui oppure selezionali insieme dal Mac.</p></div>
+                <button class="primary-button" id="videoBrowseButton">Scegli file EDL</button>
+                <p class="privacy-note"><span>✓</span> Ogni EDL genera un DCP indipendente</p>
               </section>
               <button class="panel history-entry-card" id="openVideoHistoryButton" type="button">
                 <span class="history-entry-top"><small>ARCHIVIO</small><span class="history-card-icon" aria-hidden="true">↺</span></span>
@@ -225,6 +226,7 @@
               </button>
             </div>
             <section class="workspace hidden" id="videoWorkspace">
+              <div class="batch-list hidden" id="videoBatchList"></div>
               <div class="file-summary panel" id="videoFileSummary">
                 <div class="file-badge">EDL</div><div class="file-meta"><strong id="videoFileName">—</strong><span id="videoFileDetails">—</span></div>
                 <button class="secondary-button" id="videoChangeFile">Cambia file</button>
@@ -425,7 +427,7 @@
               <h2>DVS Utility</h2>
               <p>Applicazione per gli strumenti tecnici di Digital Video Service.</p>
               <dl>
-                <div><dt>Versione</dt><dd>v3.6</dd></div>
+                <div><dt>Versione</dt><dd>v3.7</dd></div>
                 <div><dt>Ideazione e sviluppo</dt><dd>Marco D'Agostino per Digital Video Service</dd></div>
                 <div><dt>Sincronizzazione</dt><dd>Supabase Database</dd></div>
               </dl>

@@ -17,12 +17,15 @@ let currentAudioFile = null;
 let selectedAudioTracks = new Set();
 let audioRows = [];
 let currentAudioSavedId = null;
+let audioBatchItems = [];
 
 let parsedVideoEdl = null;
 let currentVideoFile = null;
 let selectedVideoTracks = new Set();
 let videoRows = [];
 let currentVideoSavedId = null;
+let videoBatchItems = [];
+let batchSequence = 0;
 let historyOrigin = "audio";
 let historyItems = [];
 let currentTechnicalSavedId = null;
@@ -63,8 +66,8 @@ function readSavedTracks(key) {
 function setupDropZone(zone, input, loader) {
   ["dragenter", "dragover"].forEach((name) => zone.addEventListener(name, (event) => { event.preventDefault(); zone.classList.add("dragover"); }));
   ["dragleave", "drop"].forEach((name) => zone.addEventListener(name, (event) => { event.preventDefault(); zone.classList.remove("dragover"); }));
-  zone.addEventListener("drop", (event) => loader(event.dataTransfer.files[0]));
-  input.addEventListener("change", () => loader(input.files[0]));
+  zone.addEventListener("drop", (event) => loader(input.multiple ? [...event.dataTransfer.files] : event.dataTransfer.files[0]));
+  input.addEventListener("change", () => loader(input.multiple ? [...input.files] : input.files[0]));
 }
 
 function renderTrackButtons(container, tracks, selected, storageKey, toggleButton) {
@@ -97,6 +100,215 @@ function cleanRows(rows, type) {
   }));
 }
 
+// IMPORTAZIONE MULTIPLA EDL
+function makeElement(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text != null) node.textContent = text;
+  return node;
+}
+
+function reportBatch(type) { return type === "video" ? videoBatchItems : audioBatchItems; }
+function batchContainer(type) { return type === "video" ? $("#videoBatchList") : $("#audioBatchList"); }
+
+function batchPayload(item) {
+  return {
+    title: item.title.trim() || (item.type === "video" ? "DCP Video senza titolo" : "DCP Audio senza titolo"),
+    report_type: item.type,
+    rows: item.rows.map(({ name, duration, frames, selected }) => ({ name, duration, frames, ...(item.type === "video" ? { selected: Boolean(selected) } : {}) }))
+  };
+}
+
+async function loadEdlBatch(files, type) {
+  const candidates = (Array.isArray(files) ? files : [files]).filter((file) => file && /\.(edl|txt)$/i.test(file.name));
+  if (!candidates.length) return toast("Seleziona almeno un file EDL valido");
+  const items = [];
+  for (const file of candidates) {
+    try {
+      const parsed = parseEdl(await file.text(), 25);
+      if (!parsed.intervals.length) continue;
+      const tracks = type === "video" ? parsed.videoTracks : parsed.audioTracks;
+      const remembered = type === "audio" ? readSavedTracks("dvs-audio-tracks").filter((track) => tracks.includes(track)) : [];
+      items.push({
+        id: `batch-${type}-${++batchSequence}`,
+        type, file, parsed,
+        title: parsed.title || file.name.replace(/\.[^.]+$/, ""),
+        selectedTracks: new Set(type === "video" ? tracks : remembered.length ? remembered : tracks),
+        rows: [], generated: false, savedId: null, search: ""
+      });
+    } catch { /* Il singolo file non leggibile viene ignorato. */ }
+  }
+  if (!items.length) return toast("Nessuno degli EDL selezionati contiene eventi leggibili");
+  if (type === "video") {
+    videoBatchItems = items; videoEntryGrid.classList.add("hidden"); videoWorkspace.classList.remove("hidden");
+    $("#videoFileSummary").classList.add("hidden"); $("#videoControls").classList.add("hidden"); videoResults.classList.add("hidden");
+    $("#videoBackButton").classList.remove("hidden"); videoFileInput.value = "";
+  } else {
+    audioBatchItems = items; audioEntryGrid.classList.add("hidden"); audioWorkspace.classList.remove("hidden");
+    $("#audioFileSummary").classList.add("hidden"); $(".work-controls").classList.add("hidden"); audioResults.classList.add("hidden");
+    $("#backButton").classList.remove("hidden"); audioFileInput.value = "";
+  }
+  batchContainer(type).classList.remove("hidden");
+  renderBatch(type);
+  toast(`${items.length} ${items.length === 1 ? "EDL caricato" : "EDL caricati"} separatamente`);
+}
+
+function batchTrackButtons(item, container, toggle) {
+  const tracks = item.type === "video" ? item.parsed.videoTracks : item.parsed.audioTracks;
+  container.replaceChildren();
+  tracks.forEach((track) => {
+    const button = makeElement("button", `track-button${item.selectedTracks.has(track) ? " active" : ""}`, `${item.selectedTracks.has(track) ? "✓ " : ""}${track}`);
+    button.type = "button"; button.setAttribute("aria-pressed", String(item.selectedTracks.has(track)));
+    button.addEventListener("click", () => {
+      item.selectedTracks.has(track) ? item.selectedTracks.delete(track) : item.selectedTracks.add(track);
+      if (item.type === "audio") localStorage.setItem("dvs-audio-tracks", JSON.stringify([...item.selectedTracks]));
+      renderBatch(item.type);
+    });
+    container.append(button);
+  });
+  const all = tracks.length > 0 && tracks.every((track) => item.selectedTracks.has(track));
+  toggle.textContent = all ? "Deseleziona tutte" : "Seleziona tutte";
+  toggle.addEventListener("click", () => {
+    item.selectedTracks = new Set(all ? [] : tracks);
+    if (item.type === "audio") localStorage.setItem("dvs-audio-tracks", JSON.stringify([...item.selectedTracks]));
+    renderBatch(item.type);
+  });
+}
+
+function renderBatchRows(item, body, summary, empty, wrap) {
+  const query = item.search.trim().toLocaleLowerCase("it");
+  const visible = item.type === "video" && query ? item.rows.filter((row) => row.name.toLocaleLowerCase("it").includes(query)) : item.rows;
+  body.replaceChildren();
+  visible.forEach((row) => {
+    const index = item.rows.indexOf(row);
+    const tr = document.createElement("tr");
+    if (item.type === "video") tr.classList.toggle("excluded-from-pdf", !row.selected);
+    if (item.type === "video") {
+      const selectCell = makeElement("td", "select-column");
+      const checkbox = document.createElement("input"); checkbox.type = "checkbox"; checkbox.className = "video-row-check"; checkbox.checked = row.selected; checkbox.ariaLabel = `Seleziona ${row.name}`;
+      checkbox.addEventListener("change", () => { row.selected = checkbox.checked; renderBatch(item.type); });
+      selectCell.append(checkbox); tr.append(selectCell);
+    }
+    tr.append(makeElement("td", "number-column", String(index + 1)));
+    const nameCell = makeElement("td", "file-name-cell");
+    const input = document.createElement("input"); input.className = "file-name-input"; input.value = row.name; input.ariaLabel = `Nome ${item.type === "video" ? "clip" : "musica"} ${index + 1}`;
+    input.addEventListener("input", () => { row.name = input.value; });
+    input.addEventListener("blur", () => {
+      row.name = input.value.trim() || (item.type === "video" ? "Clip senza nome" : "Musica senza nome");
+      if (item.type === "video") item.rows.sort((a, b) => a.name.localeCompare(b.name, "it", { sensitivity: "base", numeric: true }));
+      renderBatch(item.type);
+    });
+    nameCell.append(input); tr.append(nameCell);
+    if (item.type === "audio") tr.append(makeElement("td", "duration-column", row.duration));
+    const action = makeElement("td", "action-column");
+    const remove = makeElement("button", "remove-button", "×"); remove.type = "button"; remove.title = "Elimina questa riga";
+    remove.addEventListener("click", () => { item.rows = item.rows.filter((entry) => entry.id !== row.id); renderBatch(item.type); });
+    action.append(remove); tr.append(action); body.append(tr);
+  });
+  if (item.type === "video") {
+    const selected = item.rows.filter((row) => row.selected).length;
+    summary.textContent = `${item.rows.length} clip · ${selected} selezionate · Ordine A–Z`;
+  } else summary.textContent = `${item.rows.length} ${item.rows.length === 1 ? "utilizzo musicale" : "utilizzi musicali"} · Timecode 25 fps`;
+  empty.textContent = item.type === "video" && item.rows.length && !visible.length ? "Nessuna clip corrisponde alla ricerca." : item.type === "video" ? "Nessuna clip trovata." : "Nessuna musica trovata nelle tracce selezionate.";
+  empty.classList.toggle("hidden", visible.length > 0); wrap.classList.toggle("hidden", !visible.length);
+}
+
+async function saveBatchItem(item, button) {
+  if (!db) { toast("Database non configurato"); return false; }
+  if (!item.rows.length) { toast("Non ci sono righe da salvare"); return false; }
+  button.disabled = true;
+  try {
+    const payload = batchPayload(item);
+    const result = item.savedId
+      ? await db.from("dcp_audio_reports").update(payload).eq("id", item.savedId).select("id").single()
+      : await db.from("dcp_audio_reports").insert(payload).select("id").single();
+    if (result.error) throw result.error;
+    const updating = Boolean(item.savedId); item.savedId = result.data.id; button.textContent = "Aggiorna DCP";
+    toast(updating ? "DCP aggiornato nello storico" : "DCP salvato nello storico");
+    return true;
+  } catch (error) {
+    toast(error.code === "42703" ? "Esegui la migrazione database della nuova versione" : `Salvataggio non riuscito: ${error.message}`);
+    return false;
+  } finally { button.disabled = false; }
+}
+
+async function pdfBatchItem(item, button, card) {
+  if (item.type === "video" && !item.rows.some((row) => row.selected)) return toast("Seleziona almeno una clip per il PDF");
+  if (!await saveBatchItem(item, button)) return;
+  document.querySelectorAll(".batch-report-card.print-target").forEach((node) => node.classList.remove("print-target"));
+  card.classList.add("print-target"); document.body.dataset.printMode = `${item.type}-batch`;
+  setTimeout(() => window.print(), 180);
+}
+
+function buildBatchCard(item) {
+  const card = makeElement("article", "batch-report-card panel"); card.dataset.batchId = item.id;
+  const head = makeElement("div", "batch-file-summary");
+  const badge = makeElement("div", "file-badge", "EDL");
+  const meta = makeElement("div", "file-meta"); meta.append(makeElement("strong", "", item.file.name), makeElement("span", "", `${item.parsed.title || "Sequenza Avid"} · ${item.type === "video" ? item.parsed.videoTracks.length : item.parsed.audioTracks.length} tracce ${item.type}`));
+  const dismiss = makeElement("button", "secondary-button", "Rimuovi"); dismiss.type = "button";
+  dismiss.addEventListener("click", () => {
+    if (item.type === "video") videoBatchItems = videoBatchItems.filter((entry) => entry.id !== item.id);
+    else audioBatchItems = audioBatchItems.filter((entry) => entry.id !== item.id);
+    if (!reportBatch(item.type).length) item.type === "video" ? showVideoLanding() : showAudioLanding(); else renderBatch(item.type);
+  });
+  head.append(badge, meta, dismiss); card.append(head);
+
+  const controls = makeElement("section", "batch-track-controls");
+  const titleRow = makeElement("div", "panel-title-row");
+  const copy = makeElement("div"); copy.append(makeElement("p", "step-label", "TRACCE DA ANALIZZARE"), makeElement("h2", "", item.type === "video" ? "Tracce video" : "Tracce musicali"));
+  const toggle = makeElement("button", "text-button"); toggle.type = "button"; titleRow.append(copy, toggle);
+  const trackGrid = makeElement("div", "track-grid"); if (item.type === "video") trackGrid.classList.add("video-batch-tracks");
+  batchTrackButtons(item, trackGrid, toggle);
+  const generate = makeElement("button", "primary-button wide", item.generated ? "Rigenera elenco" : item.type === "video" ? "Elabora DCP Video" : "Elabora DCP Audio"); generate.type = "button";
+  generate.addEventListener("click", () => {
+    if (!item.selectedTracks.size) return toast(`Seleziona almeno una traccia ${item.type === "video" ? "video" : "musicale"}`);
+    item.rows = item.type === "video" ? buildVideoReport(item.parsed, [...item.selectedTracks]) : buildAudioReport(item.parsed, [...item.selectedTracks]);
+    item.generated = true; item.savedId = null; item.search = ""; renderBatch(item.type);
+    requestAnimationFrame(() => batchContainer(item.type).querySelector(`[data-batch-id="${item.id}"] .batch-result`)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  });
+  controls.append(titleRow, trackGrid, generate); card.append(controls);
+
+  if (item.generated) {
+    const result = makeElement("section", "batch-result");
+    const resultHead = makeElement("div", "results-header");
+    const titleArea = makeElement("div", "result-title-area"); titleArea.append(makeElement("p", "step-label", item.type === "video" ? "RAPPORTO IMMAGINI" : "RAPPORTO MUSICALE"));
+    const titleInput = document.createElement("input"); titleInput.className = "report-title-input"; titleInput.value = item.title; titleInput.ariaLabel = "Titolo DCP"; titleInput.addEventListener("input", () => { item.title = titleInput.value; });
+    const summary = makeElement("p", "muted"); titleArea.append(titleInput, summary);
+    const actions = makeElement("div", "result-actions batch-actions");
+    const save = makeElement("button", "save-button", item.savedId ? "Aggiorna DCP" : "Salva DCP"); save.type = "button"; save.addEventListener("click", () => saveBatchItem(item, save));
+    if (item.type === "audio") {
+      const copyButton = makeElement("button", "secondary-button", "Copia elenco"); copyButton.type = "button"; copyButton.addEventListener("click", async () => { await navigator.clipboard.writeText(item.rows.map((row, i) => `${i + 1}. ${row.name} — ${row.duration}`).join("\n")); toast("Elenco copiato"); });
+      const csv = makeElement("button", "secondary-button", "Esporta CSV"); csv.type = "button"; csv.addEventListener("click", () => downloadCsv(batchPayload(item).title, item.rows));
+      actions.append(save, copyButton, csv);
+    } else actions.append(save);
+    const pdf = makeElement("button", "primary-button", "PDF"); pdf.type = "button"; pdf.addEventListener("click", () => pdfBatchItem(item, save, card)); actions.append(pdf);
+    resultHead.append(titleArea, actions); result.append(resultHead);
+
+    if (item.type === "video") {
+      const filter = makeElement("div", "video-filter-bar batch-video-filter");
+      const label = makeElement("label", "video-search"); label.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>';
+      const search = document.createElement("input"); search.type = "search"; search.placeholder = "Cerca, ad esempio Getty"; search.value = item.search;
+      search.addEventListener("input", () => { item.search = search.value; renderBatch(item.type); requestAnimationFrame(() => { const next = batchContainer(item.type).querySelector(`[data-batch-id="${item.id}"] input[type="search"]`); next?.focus(); next?.setSelectionRange(item.search.length, item.search.length); }); });
+      const clear = makeElement("button", "", "×"); clear.type = "button"; clear.ariaLabel = "Cancella ricerca"; clear.addEventListener("click", () => { item.search = ""; renderBatch(item.type); });
+      label.append(search, clear);
+      const select = makeElement("button", "secondary-button", "Seleziona tutte"); select.type = "button"; select.addEventListener("click", () => { const q = item.search.trim().toLocaleLowerCase("it"); item.rows.filter((row) => !q || row.name.toLocaleLowerCase("it").includes(q)).forEach((row) => { row.selected = true; }); renderBatch(item.type); });
+      const deselect = makeElement("button", "text-button", "Deseleziona visibili"); deselect.type = "button"; deselect.addEventListener("click", () => { const q = item.search.trim().toLocaleLowerCase("it"); item.rows.filter((row) => !q || row.name.toLocaleLowerCase("it").includes(q)).forEach((row) => { row.selected = false; }); renderBatch(item.type); });
+      filter.append(label, select, deselect); result.append(filter);
+    }
+    const empty = makeElement("div", "empty-result");
+    const wrap = makeElement("div", "table-wrap"); const table = document.createElement("table"); const thead = document.createElement("thead");
+    thead.innerHTML = item.type === "video" ? '<tr><th class="select-column"><span class="sr-only">Seleziona</span></th><th class="number-column">N.</th><th>Nome clip</th><th class="action-column"><span class="sr-only">Azioni</span></th></tr>' : '<tr><th class="number-column">N.</th><th>File musicale</th><th class="duration-column">Durata</th><th class="action-column"><span class="sr-only">Azioni</span></th></tr>';
+    const body = document.createElement("tbody"); if (item.type === "video") body.className = "batch-video-body";
+    table.append(thead, body); wrap.append(table); result.append(empty, wrap); renderBatchRows(item, body, summary, empty, wrap); card.append(result);
+  }
+  return card;
+}
+
+function renderBatch(type) {
+  const container = batchContainer(type); container.replaceChildren();
+  reportBatch(type).forEach((item) => container.append(buildBatchCard(item)));
+}
+
 // DCP AUDIO
 const audioEntryGrid = $("#audioEntryGrid");
 const audioWorkspace = $("#workspace");
@@ -106,6 +318,7 @@ const audioFileInput = $("#fileInput");
 function showAudioLanding() {
   audioEntryGrid.classList.remove("hidden");
   audioWorkspace.classList.add("hidden");
+  $("#audioBatchList").classList.add("hidden");
   $("#backButton").classList.add("hidden");
   showView("audio");
 }
@@ -185,6 +398,7 @@ const videoFileInput = $("#videoFileInput");
 function showVideoLanding() {
   videoEntryGrid.classList.remove("hidden");
   videoWorkspace.classList.add("hidden");
+  $("#videoBatchList").classList.add("hidden");
   $("#videoBackButton").classList.add("hidden");
   showView("video");
 }
@@ -347,11 +561,11 @@ function openSavedReport(item) {
   if (item.report_type === "video") {
     videoRows = cleanRows(item.rows, "video").sort((a, b) => a.name.localeCompare(b.name, "it", { sensitivity: "base", numeric: true }));
     $("#videoResultTitle").value = item.title; $("#videoSearchInput").value = ""; currentVideoSavedId = item.id;
-    videoEntryGrid.classList.add("hidden"); videoWorkspace.classList.remove("hidden"); $("#videoFileSummary").classList.add("hidden"); $("#videoControls").classList.add("hidden");
+    videoEntryGrid.classList.add("hidden"); videoWorkspace.classList.remove("hidden"); $("#videoBatchList").classList.add("hidden"); $("#videoFileSummary").classList.add("hidden"); $("#videoControls").classList.add("hidden");
     videoResults.classList.remove("hidden"); $("#videoBackButton").classList.remove("hidden"); updateVideoSaveButtons(); renderVideoRows(); showView("video");
   } else {
     audioRows = cleanRows(item.rows, "audio"); $("#resultTitle").value = item.title; currentAudioSavedId = item.id;
-    audioEntryGrid.classList.add("hidden"); audioWorkspace.classList.remove("hidden"); $(".file-summary").classList.add("hidden"); $(".work-controls").classList.add("hidden");
+    audioEntryGrid.classList.add("hidden"); audioWorkspace.classList.remove("hidden"); $("#audioBatchList").classList.add("hidden"); $("#audioFileSummary").classList.add("hidden"); $(".work-controls").classList.add("hidden");
     audioResults.classList.remove("hidden"); $("#backButton").classList.remove("hidden"); updateAudioSaveButtons(); renderAudioRows(); showView("audio");
   }
 }
@@ -758,7 +972,7 @@ $("#infoBackButton").addEventListener("click", () => showView("home"));
 $("#backButton").addEventListener("click", showAudioLanding);
 $("#browseButton").addEventListener("click", () => audioFileInput.click());
 $("#changeFile").addEventListener("click", () => audioFileInput.click());
-setupDropZone($("#dropZone"), audioFileInput, loadAudioFile);
+setupDropZone($("#dropZone"), audioFileInput, (files) => loadEdlBatch(files, "audio"));
 $("#toggleTracks").addEventListener("click", () => { const tracks = parsedAudioEdl.audioTracks; const all = tracks.every((track) => selectedAudioTracks.has(track)); selectedAudioTracks = new Set(all ? [] : tracks); localStorage.setItem("dvs-audio-tracks", JSON.stringify([...selectedAudioTracks])); renderTrackButtons($("#trackGrid"), tracks, selectedAudioTracks, "dvs-audio-tracks", $("#toggleTracks")); });
 $("#generateButton").addEventListener("click", generateAudioReport);
 $("#newDcpButton").addEventListener("click", newAudioDcp);
@@ -771,7 +985,7 @@ $("#csvButton").addEventListener("click", () => downloadCsv(audioPayload().title
 $("#videoBackButton").addEventListener("click", showVideoLanding);
 $("#videoBrowseButton").addEventListener("click", () => videoFileInput.click());
 $("#videoChangeFile").addEventListener("click", () => videoFileInput.click());
-setupDropZone($("#videoDropZone"), videoFileInput, loadVideoFile);
+setupDropZone($("#videoDropZone"), videoFileInput, (files) => loadEdlBatch(files, "video"));
 $("#toggleVideoTracks").addEventListener("click", () => { const tracks = parsedVideoEdl.videoTracks; const all = tracks.every((track) => selectedVideoTracks.has(track)); selectedVideoTracks = new Set(all ? [] : tracks); localStorage.setItem("dvs-video-tracks", JSON.stringify([...selectedVideoTracks])); renderTrackButtons($("#videoTrackGrid"), tracks, selectedVideoTracks, "dvs-video-tracks", $("#toggleVideoTracks")); });
 $("#generateVideoButton").addEventListener("click", generateVideoReport);
 $("#newVideoDcpButton").addEventListener("click", newVideoDcp);
@@ -816,7 +1030,10 @@ $("#technicalHistoryNew").addEventListener("click", newTechnicalSheet);
 $("#newTechnicalFromFormButton").addEventListener("click", newTechnicalSheet);
 $("#saveTechnicalButton").addEventListener("click", saveTechnicalSheet);
 $("#deleteTechnicalButton").addEventListener("click", deleteTechnicalSheet);
-window.addEventListener("afterprint", () => { delete document.body.dataset.printMode; });
+window.addEventListener("afterprint", () => {
+  delete document.body.dataset.printMode;
+  document.querySelectorAll(".batch-report-card.print-target").forEach((node) => node.classList.remove("print-target"));
+});
 
 function downloadCsv(title, rows) {
   const selected = rows.filter((row) => row.selected !== false);

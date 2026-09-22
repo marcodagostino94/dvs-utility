@@ -2,9 +2,13 @@
 
 Web app/PWA indipendente per gli strumenti interni di Digital Video Service, coordinata graficamente con DVS Planning e DVS Gestionale.
 
-## Versione 3.6
+## Versione 3.7
 
 - Menu laterale coordinato al Planning: stessi tab Liquid Glass, con accento verde Utility.
+- voce iniziale del menu rinominata Dashboard, con icona a quattro quadratini;
+- importazione simultanea di più EDL Audio o Video, mantenuti come DCP indipendenti;
+- titolo, tracce, righe, ricerca Video, salvataggio e PDF separati per ogni EDL importato;
+- il pulsante PDF salva automaticamente nello storico soltanto il relativo DCP.
 
 - dashboard principale a riquadri in stile DVS liquid glass;
 - colori coordinati per ogni riquadro: verde Audio, blu Video, ciano Loudness, arancione Scheda Tecnica e viola Calcolatrice;
@@ -27,7 +31,7 @@ Web app/PWA indipendente per gli strumenti interni di Digital Video Service, coo
 - DCP Video con selezione tracce, elenco alfabetico, ricerca e selezione delle righe;
 - nel DCP Video schermata e PDF dichiarano soltanto i nomi delle clip, senza indicarne la durata;
 - il PDF Video include soltanto le righe selezionate, mentre lo storico conserva l'elenco completo;
-- storico unico con distinzione tra rapporti Audio e Video.
+- storici Audio e Video separati.
 - cronologia Timecode immediata: il primo operando e l'operatore compaiono prima del risultato;
 - piste DCP Video selezionabili e deselezionabili singolarmente, con conteggio visibile;
 - Scheda Tecnica RAI con compilazione moderna, 15 servizi e PDF A4;
