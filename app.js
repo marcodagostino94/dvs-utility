@@ -1,11 +1,11 @@
-import { buildAudioReport, buildVideoReport, framesToTc, parseEdl } from "./parser.js";
+import { buildAudioReport, buildVideoReport, excludeEdlRanges, framesToTc, parseEdl, tcToFrames } from "./parser.js";
 import { analyzeWav, loudnessLimits, normalizeWav, parseWav } from "./loudness.js";
 import { technicalDuration } from "./technical.js";
 import { filterHistoryItems } from "./history.js";
 
 const $ = (selector) => document.querySelector(selector);
 const views = {
-  home: $("#homeView"), audio: $("#audioView"), video: $("#videoView"),
+  home: $("#homeView"), audio: $("#audioView"), video: $("#videoView"), episode: $("#episodeView"),
   calculator: $("#calculatorView"), loudness: $("#loudnessView"), technical: $("#technicalView"),
   history: $("#historyView"), info: $("#infoView")
 };
@@ -25,6 +25,7 @@ let selectedVideoTracks = new Set();
 let videoRows = [];
 let currentVideoSavedId = null;
 let videoBatchItems = [];
+let episodeBatchItems = [];
 let batchSequence = 0;
 let historyOrigin = "audio";
 let historyItems = [];
@@ -42,9 +43,11 @@ function showView(name) {
   Object.entries(views).forEach(([key, view]) => view.classList.toggle("active", key === name));
   const inAudio = name === "audio" || (name === "history" && historyOrigin === "audio");
   const inVideo = name === "video" || (name === "history" && historyOrigin === "video");
+  const inEpisode = name === "episode" || (name === "history" && historyOrigin === "episode");
   $("#openHomeNav").classList.toggle("active", name === "home");
   $("#openAudioNav").classList.toggle("active", inAudio);
   $("#openVideoNav").classList.toggle("active", inVideo);
+  $("#openEpisodeNav").classList.toggle("active", inEpisode);
   $("#openCalculatorNav").classList.toggle("active", name === "calculator");
   $("#openLoudnessNav").classList.toggle("active", name === "loudness");
   $("#openTechnicalNav").classList.toggle("active", name === "technical");
@@ -54,7 +57,7 @@ function showView(name) {
   $("#iphoneVideoNav").classList.toggle("active", inVideo);
   $("#iphoneCalculatorNav").classList.toggle("active", name === "calculator");
   $(".iphone-bottom-nav").dataset.active = inVideo ? "2" : name === "calculator" ? "3" : inAudio ? "1" : "0";
-  $("#iphoneSectionTitle").textContent = name === "history" ? "STORICO DCP" : name === "audio" ? "DCP AUDIO" : name === "video" ? "DCP VIDEO" : name === "calculator" ? "TIMECODE" : name === "loudness" ? "LOUDNESS" : name === "technical" ? "SCHEDA TECNICA" : name === "info" ? "INFORMAZIONI" : "UTILITY";
+  $("#iphoneSectionTitle").textContent = name === "history" ? (historyOrigin === "episode" ? "STORICO PUNTATE" : "STORICO DCP") : name === "audio" ? "DCP AUDIO" : name === "video" ? "DCP VIDEO" : name === "episode" ? "DCP PUNTATE" : name === "calculator" ? "TIMECODE" : name === "loudness" ? "LOUDNESS" : name === "technical" ? "SCHEDA TECNICA" : name === "info" ? "INFORMAZIONI" : "UTILITY";
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -309,6 +312,235 @@ function renderBatch(type) {
   reportBatch(type).forEach((item) => container.append(buildBatchCard(item)));
 }
 
+// DCP PUNTATE — rapporto unico immagini + musiche
+function showEpisodeLanding() {
+  $("#episodeEntryGrid").classList.remove("hidden");
+  $("#episodeWorkspace").classList.add("hidden");
+  $("#episodeBackButton").classList.add("hidden");
+  showView("episode");
+}
+
+function newEpisodeRange() {
+  return { id: `range-${++batchSequence}`, from: "", to: "" };
+}
+
+function episodeRanges(item, notify = true) {
+  const ranges = [];
+  for (const range of item.exclusions) {
+    if (!range.from.trim() && !range.to.trim()) continue;
+    const start = tcToFrames(range.from.trim(), item.parsed?.fps || 25);
+    const end = tcToFrames(range.to.trim(), item.parsed?.fps || 25);
+    if (start == null || end == null || end <= start) {
+      if (notify) toast("Controlla gli intervalli DA–A: il timecode finale deve essere successivo");
+      return null;
+    }
+    ranges.push({ start, end, from: range.from.trim(), to: range.to.trim() });
+  }
+  return ranges;
+}
+
+async function loadEpisodeBatch(files) {
+  const candidates = (Array.isArray(files) ? files : [files]).filter((file) => file && /\.(edl|txt)$/i.test(file.name));
+  if (!candidates.length) return toast("Seleziona almeno un file EDL valido");
+  const items = [];
+  for (const file of candidates) {
+    try {
+      const parsed = parseEdl(await file.text(), 25);
+      if (!parsed.intervals.length) continue;
+      const remembered = readSavedTracks("dvs-audio-tracks").filter((track) => parsed.audioTracks.includes(track));
+      items.push({
+        id: `batch-episode-${++batchSequence}`, type: "episode", file, parsed,
+        title: parsed.title || file.name.replace(/\.[^.]+$/, ""),
+        selectedAudioTracks: new Set(remembered.length ? remembered : parsed.audioTracks),
+        selectedVideoTracks: new Set(parsed.videoTracks), exclusions: [newEpisodeRange()],
+        audioRows: [], videoRows: [], generated: false, savedId: null, search: ""
+      });
+    } catch { /* Un EDL non leggibile non blocca gli altri file. */ }
+  }
+  if (!items.length) return toast("Nessuno degli EDL selezionati contiene eventi leggibili");
+  episodeBatchItems = items;
+  $("#episodeEntryGrid").classList.add("hidden");
+  $("#episodeWorkspace").classList.remove("hidden");
+  $("#episodeBackButton").classList.remove("hidden");
+  $("#episodeFileInput").value = "";
+  renderEpisodeBatch();
+  showView("episode");
+  toast(`${items.length} ${items.length === 1 ? "puntata caricata" : "puntate caricate"}`);
+}
+
+function episodeTrackSelector(item, type) {
+  const isVideo = type === "video";
+  const tracks = isVideo ? item.parsed.videoTracks : item.parsed.audioTracks;
+  const selected = isVideo ? item.selectedVideoTracks : item.selectedAudioTracks;
+  const panel = makeElement("section", "episode-control-block");
+  const heading = makeElement("div", "panel-title-row");
+  const label = makeElement("div"); label.append(makeElement("p", "step-label", isVideo ? "DCP VIDEO" : "DCP AUDIO"), makeElement("h3", "", isVideo ? "Tracce video" : "Tracce musicali"));
+  const toggle = makeElement("button", "text-button", tracks.length && tracks.every((track) => selected.has(track)) ? "Deseleziona tutte" : "Seleziona tutte"); toggle.type = "button";
+  toggle.addEventListener("click", () => {
+    const all = tracks.length && tracks.every((track) => selected.has(track));
+    if (isVideo) item.selectedVideoTracks = new Set(all ? [] : tracks);
+    else { item.selectedAudioTracks = new Set(all ? [] : tracks); localStorage.setItem("dvs-audio-tracks", JSON.stringify([...item.selectedAudioTracks])); }
+    renderEpisodeBatch();
+  });
+  heading.append(label, toggle); panel.append(heading);
+  const grid = makeElement("div", "track-grid episode-track-grid");
+  tracks.forEach((track) => {
+    const button = makeElement("button", `track-button${selected.has(track) ? " active" : ""}`, `${selected.has(track) ? "✓ " : ""}${track}`); button.type = "button";
+    button.addEventListener("click", () => {
+      selected.has(track) ? selected.delete(track) : selected.add(track);
+      if (!isVideo) localStorage.setItem("dvs-audio-tracks", JSON.stringify([...selected]));
+      renderEpisodeBatch();
+    });
+    grid.append(button);
+  });
+  panel.append(grid); return panel;
+}
+
+function episodeExclusions(item) {
+  const panel = makeElement("section", "episode-control-block exclusion-block");
+  const heading = makeElement("div", "panel-title-row");
+  const label = makeElement("div"); label.append(makeElement("p", "step-label", "TIMELINE"), makeElement("h3", "", "Escludi intervalli"));
+  const add = makeElement("button", "range-add-button", "+"); add.type = "button"; add.title = "Aggiungi intervallo";
+  add.addEventListener("click", () => { item.exclusions.push(newEpisodeRange()); renderEpisodeBatch(); });
+  heading.append(label, add); panel.append(heading);
+  const list = makeElement("div", "exclusion-list");
+  item.exclusions.forEach((range, index) => {
+    const row = makeElement("div", "exclusion-row");
+    const fromLabel = makeElement("label", ""); fromLabel.append(makeElement("span", "", "DA"));
+    const from = document.createElement("input"); from.placeholder = "01:00:00:00"; from.inputMode = "numeric"; from.value = range.from; from.ariaLabel = `Timecode iniziale intervallo ${index + 1}`;
+    from.addEventListener("input", () => { range.from = from.value; }); fromLabel.append(from);
+    const toLabel = makeElement("label", ""); toLabel.append(makeElement("span", "", "A"));
+    const to = document.createElement("input"); to.placeholder = "01:01:00:00"; to.inputMode = "numeric"; to.value = range.to; to.ariaLabel = `Timecode finale intervallo ${index + 1}`;
+    to.addEventListener("input", () => { range.to = to.value; }); toLabel.append(to);
+    const remove = makeElement("button", "remove-button", "×"); remove.type = "button"; remove.title = "Elimina intervallo";
+    remove.addEventListener("click", () => { item.exclusions.splice(index, 1); if (!item.exclusions.length) item.exclusions.push(newEpisodeRange()); renderEpisodeBatch(); });
+    row.append(fromLabel, toLabel, remove); list.append(row);
+  });
+  panel.append(list, makeElement("p", "muted exclusion-note", "Gli intervalli sono riferiti al Record TC della timeline e valgono per audio e video."));
+  return panel;
+}
+
+function generateEpisode(item) {
+  if (!item.selectedVideoTracks.size) return toast("Seleziona almeno una traccia video");
+  if (!item.selectedAudioTracks.size) return toast("Seleziona almeno una traccia audio");
+  const ranges = episodeRanges(item); if (!ranges) return;
+  const filtered = excludeEdlRanges(item.parsed, ranges);
+  item.videoRows = buildVideoReport(filtered, [...item.selectedVideoTracks]);
+  item.audioRows = buildAudioReport(filtered, [...item.selectedAudioTracks]);
+  item.generated = true; item.savedId = null; item.search = "";
+  renderEpisodeBatch();
+  requestAnimationFrame(() => $("#episodeBatchList").querySelector(`[data-batch-id="${item.id}"] .episode-results`)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+}
+
+function episodePayload(item) {
+  const ranges = episodeRanges(item, false) || [];
+  return {
+    title: item.title.trim() || "DCP Puntata senza titolo", report_type: "episode",
+    rows: {
+      version: 1,
+      audio: item.audioRows.map(({ name, duration, frames }) => ({ name, duration, frames })),
+      video: item.videoRows.map(({ name, duration, frames, selected }) => ({ name, duration, frames, selected: Boolean(selected) })),
+      audio_tracks: [...item.selectedAudioTracks], video_tracks: [...item.selectedVideoTracks],
+      exclusions: ranges.map(({ from, to, start, end }) => ({ from, to, start, end })),
+      source: item.parsed ? { title: item.parsed.title, fps: item.parsed.fps, intervals: item.parsed.intervals, audioTracks: item.parsed.audioTracks, videoTracks: item.parsed.videoTracks } : null
+    }
+  };
+}
+
+async function saveEpisode(item, button) {
+  if (!db) { toast("Database non configurato"); return false; }
+  if (!item.generated || (!item.audioRows.length && !item.videoRows.length)) { toast("Genera prima il DCP Puntata"); return false; }
+  button.disabled = true;
+  try {
+    const payload = episodePayload(item);
+    const result = item.savedId
+      ? await db.from("dcp_audio_reports").update(payload).eq("id", item.savedId).select("id").single()
+      : await db.from("dcp_audio_reports").insert(payload).select("id").single();
+    if (result.error) throw result.error;
+    const updating = Boolean(item.savedId); item.savedId = result.data.id; button.textContent = "Aggiorna puntata";
+    toast(updating ? "Puntata aggiornata nello storico" : "Puntata salvata nello storico"); return true;
+  } catch (error) {
+    toast(error.code === "23514" ? "Esegui il file SQL 004 per abilitare DCP Puntate" : `Salvataggio non riuscito: ${error.message}`); return false;
+  } finally { button.disabled = false; }
+}
+
+async function deleteEpisode(item) {
+  if (!item.savedId || !confirm(`Eliminare definitivamente “${item.title}” dallo Storico Puntate?`)) return;
+  const { error } = await db.from("dcp_audio_reports").delete().eq("id", item.savedId);
+  if (error) return toast(`Eliminazione non riuscita: ${error.message}`);
+  episodeBatchItems = episodeBatchItems.filter((entry) => entry.id !== item.id);
+  toast("Puntata eliminata dallo storico");
+  if (!episodeBatchItems.length) showEpisodeLanding(); else renderEpisodeBatch();
+}
+
+async function pdfEpisode(item, button, card) {
+  if (!item.videoRows.some((row) => row.selected)) return toast("Seleziona almeno una clip video per il PDF");
+  if (!await saveEpisode(item, button)) return;
+  document.querySelectorAll(".episode-report-card.print-target").forEach((node) => node.classList.remove("print-target"));
+  card.classList.add("print-target"); document.body.dataset.printMode = "episode-batch";
+  setTimeout(() => window.print(), 180);
+}
+
+function episodeVideoRows(item, body, summary) {
+  const query = item.search.trim().toLocaleLowerCase("it");
+  const visible = query ? item.videoRows.filter((row) => row.name.toLocaleLowerCase("it").includes(query)) : item.videoRows;
+  body.replaceChildren();
+  visible.forEach((row) => {
+    const index = item.videoRows.indexOf(row); const tr = document.createElement("tr"); tr.classList.toggle("excluded-from-pdf", !row.selected);
+    const selectCell = makeElement("td", "select-column"); const checkbox = document.createElement("input"); checkbox.type = "checkbox"; checkbox.className = "video-row-check"; checkbox.checked = row.selected;
+    checkbox.addEventListener("change", () => { row.selected = checkbox.checked; renderEpisodeBatch(); }); selectCell.append(checkbox);
+    tr.append(selectCell, makeElement("td", "number-column", String(index + 1)));
+    const nameCell = makeElement("td", "file-name-cell"); const input = document.createElement("input"); input.className = "file-name-input"; input.value = row.name;
+    input.addEventListener("input", () => { row.name = input.value; }); input.addEventListener("blur", () => { row.name = input.value.trim() || "Clip senza nome"; item.videoRows.sort((a,b) => a.name.localeCompare(b.name, "it", { sensitivity: "base", numeric: true })); renderEpisodeBatch(); }); nameCell.append(input); tr.append(nameCell);
+    const action = makeElement("td", "action-column"); const remove = makeElement("button", "remove-button", "×"); remove.type = "button"; remove.addEventListener("click", () => { item.videoRows = item.videoRows.filter((entry) => entry.id !== row.id); renderEpisodeBatch(); }); action.append(remove); tr.append(action); body.append(tr);
+  });
+  summary.textContent = `${item.videoRows.length} clip · ${item.videoRows.filter((row) => row.selected).length} selezionate · Ordine A–Z`;
+}
+
+function episodeAudioRows(item, body, summary) {
+  body.replaceChildren(); item.audioRows.forEach((row, index) => {
+    const tr = document.createElement("tr"); tr.append(makeElement("td", "number-column", String(index + 1)));
+    const nameCell = makeElement("td", "file-name-cell"); const input = document.createElement("input"); input.className = "file-name-input"; input.value = row.name;
+    input.addEventListener("input", () => { row.name = input.value; }); input.addEventListener("blur", () => { row.name = input.value.trim() || "Musica senza nome"; }); nameCell.append(input); tr.append(nameCell, makeElement("td", "duration-column", row.duration));
+    const action = makeElement("td", "action-column"); const remove = makeElement("button", "remove-button", "×"); remove.type = "button"; remove.addEventListener("click", () => { item.audioRows = item.audioRows.filter((entry) => entry.id !== row.id); renderEpisodeBatch(); }); action.append(remove); tr.append(action); body.append(tr);
+  }); summary.textContent = `${item.audioRows.length} ${item.audioRows.length === 1 ? "utilizzo musicale" : "utilizzi musicali"} · Timecode ${item.parsed?.fps || 25} fps`;
+}
+
+function buildEpisodeCard(item) {
+  const card = makeElement("article", "batch-report-card episode-report-card panel"); card.dataset.batchId = item.id;
+  const head = makeElement("div", "batch-file-summary"); head.append(makeElement("div", "file-badge episode-file-badge", "EDL"));
+  const meta = makeElement("div", "file-meta"); meta.append(makeElement("strong", "", item.file?.name || item.title), makeElement("span", "", `${item.parsed?.title || "Sequenza Avid"} · ${item.parsed?.videoTracks?.length || 0} video · ${item.parsed?.audioTracks?.length || 0} audio`)); head.append(meta);
+  const dismiss = makeElement("button", "secondary-button", "Rimuovi"); dismiss.type = "button"; dismiss.addEventListener("click", () => { episodeBatchItems = episodeBatchItems.filter((entry) => entry.id !== item.id); if (!episodeBatchItems.length) showEpisodeLanding(); else renderEpisodeBatch(); }); head.append(dismiss); card.append(head);
+  if (item.parsed) {
+    const controls = makeElement("section", "episode-controls-grid"); controls.append(episodeTrackSelector(item, "video"), episodeTrackSelector(item, "audio"), episodeExclusions(item)); card.append(controls);
+    const generate = makeElement("button", "primary-button wide episode-generate", item.generated ? "Rigenera DCP Puntata" : "Genera DCP Puntata"); generate.type = "button"; generate.addEventListener("click", () => generateEpisode(item)); card.append(generate);
+  }
+  if (!item.generated) return card;
+  const results = makeElement("section", "episode-results");
+  const header = makeElement("div", "results-header episode-results-header"); const titleArea = makeElement("div", "result-title-area"); titleArea.append(makeElement("p", "step-label", "DCP PUNTATA"));
+  const title = document.createElement("input"); title.className = "report-title-input"; title.value = item.title; title.addEventListener("input", () => { item.title = title.value; }); titleArea.append(title, makeElement("p", "muted", "Documento unico con immagini e musiche"));
+  const actions = makeElement("div", "result-actions episode-actions"); const save = makeElement("button", "save-button", item.savedId ? "Aggiorna puntata" : "Salva puntata"); save.type = "button"; save.addEventListener("click", () => saveEpisode(item, save)); actions.append(save);
+  const pdf = makeElement("button", "primary-button", "PDF"); pdf.type = "button"; pdf.addEventListener("click", () => pdfEpisode(item, save, card)); actions.append(pdf);
+  if (item.savedId) { const del = makeElement("button", "danger-button", "Elimina puntata"); del.type = "button"; del.addEventListener("click", () => deleteEpisode(item)); actions.append(del); }
+  header.append(titleArea, actions); results.append(header);
+
+  const videoSection = makeElement("section", "episode-result-section episode-video-section"); const videoHead = makeElement("div", "episode-section-heading"); const videoCopy = makeElement("div"); videoCopy.append(makeElement("p", "step-label", "SEZIONE VIDEO"), makeElement("h2", "", "Immagini")); const videoSummary = makeElement("p", "muted"); videoCopy.append(videoSummary); videoHead.append(videoCopy); videoSection.append(videoHead);
+  const filter = makeElement("div", "video-filter-bar episode-video-filter"); const searchLabel = makeElement("label", "video-search"); searchLabel.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>';
+  const search = document.createElement("input"); search.type = "search"; search.placeholder = "Cerca, ad esempio Getty"; search.value = item.search; search.addEventListener("input", () => { item.search = search.value; renderEpisodeBatch(); requestAnimationFrame(() => { const next = $("#episodeBatchList").querySelector(`[data-batch-id="${item.id}"] input[type="search"]`); next?.focus(); next?.setSelectionRange(item.search.length, item.search.length); }); });
+  const clear = makeElement("button", "", "×"); clear.type = "button"; clear.addEventListener("click", () => { item.search = ""; renderEpisodeBatch(); }); searchLabel.append(search, clear);
+  const select = makeElement("button", "secondary-button", "Seleziona tutte"); select.type = "button"; select.addEventListener("click", () => { const q = item.search.trim().toLocaleLowerCase("it"); item.videoRows.filter((row) => !q || row.name.toLocaleLowerCase("it").includes(q)).forEach((row) => { row.selected = true; }); renderEpisodeBatch(); });
+  const deselect = makeElement("button", "text-button", "Deseleziona visibili"); deselect.type = "button"; deselect.addEventListener("click", () => { const q = item.search.trim().toLocaleLowerCase("it"); item.videoRows.filter((row) => !q || row.name.toLocaleLowerCase("it").includes(q)).forEach((row) => { row.selected = false; }); renderEpisodeBatch(); }); filter.append(searchLabel, select, deselect); videoSection.append(filter);
+  const videoWrap = makeElement("div", "table-wrap"); const videoTable = document.createElement("table"); videoTable.innerHTML = '<thead><tr><th class="select-column"></th><th class="number-column">N.</th><th>Nome clip</th><th class="action-column"></th></tr></thead>'; const videoBody = document.createElement("tbody"); videoBody.className = "episode-video-body"; videoTable.append(videoBody); videoWrap.append(videoTable); videoSection.append(videoWrap); episodeVideoRows(item, videoBody, videoSummary);
+
+  const audioSection = makeElement("section", "episode-result-section episode-audio-section"); const audioHead = makeElement("div", "episode-section-heading"); const audioCopy = makeElement("div"); audioCopy.append(makeElement("p", "step-label", "SEZIONE AUDIO"), makeElement("h2", "", "Musiche")); const audioSummary = makeElement("p", "muted"); audioCopy.append(audioSummary); audioHead.append(audioCopy); audioSection.append(audioHead);
+  const audioWrap = makeElement("div", "table-wrap"); const audioTable = document.createElement("table"); audioTable.innerHTML = '<thead><tr><th class="number-column">N.</th><th>File musicale</th><th class="duration-column">Durata</th><th class="action-column"></th></tr></thead>'; const audioBody = document.createElement("tbody"); audioTable.append(audioBody); audioWrap.append(audioTable); audioSection.append(audioWrap); episodeAudioRows(item, audioBody, audioSummary);
+  results.append(videoSection, audioSection); card.append(results); return card;
+}
+
+function renderEpisodeBatch() {
+  const container = $("#episodeBatchList"); container.replaceChildren(); episodeBatchItems.forEach((item) => container.append(buildEpisodeCard(item)));
+}
+
 // DCP AUDIO
 const audioEntryGrid = $("#audioEntryGrid");
 const audioWorkspace = $("#workspace");
@@ -523,16 +755,17 @@ function renderHistoryItems() {
   const visible = filterHistoryItems(historyItems, historyOrigin, $("#historySearchInput").value);
   list.replaceChildren();
   visible.forEach((item) => {
-    const type = item.report_type === "video" ? "video" : "audio";
+    const type = ["audio", "video", "episode"].includes(item.report_type) ? item.report_type : "audio";
     const button = document.createElement("button"); button.type = "button"; button.className = "history-row";
     button.innerHTML = `<span class="history-row-icon"></span><span><strong></strong><small></small></span><em></em><b>›</b>`;
-    button.querySelector(".history-row-icon").textContent = type === "video" ? "VIDEO" : "AUDIO";
+    button.querySelector(".history-row-icon").textContent = type === "episode" ? "PUNTATA" : type === "video" ? "VIDEO" : "AUDIO";
     button.querySelector("strong").textContent = item.title;
-    button.querySelector("small").textContent = `${Array.isArray(item.rows) ? item.rows.length : 0} righe · Aggiornato ${formatDate(item.updated_at)}`;
+    const rowCount = type === "episode" ? ((item.rows?.audio?.length || 0) + (item.rows?.video?.length || 0)) : (Array.isArray(item.rows) ? item.rows.length : 0);
+    button.querySelector("small").textContent = `${rowCount} righe · Aggiornato ${formatDate(item.updated_at)}`;
     button.querySelector("em").textContent = formatDate(item.created_at);
     button.addEventListener("click", () => openSavedReport({ ...item, report_type: type })); list.append(button);
   });
-  const typeLabel = historyOrigin === "video" ? "Video" : "Audio";
+  const typeLabel = historyOrigin === "episode" ? "Puntate" : historyOrigin === "video" ? "Video" : "Audio";
   $("#historyCount").textContent = `${visible.length} di ${historyItems.length} DCP ${typeLabel}`;
   const empty = $("#emptyHistory");
   empty.textContent = historyItems.length ? "Nessun DCP corrisponde alla ricerca." : `Non ci sono ancora DCP ${typeLabel} salvati.`;
@@ -541,10 +774,10 @@ function renderHistoryItems() {
 
 async function loadHistory(origin = "audio") {
   historyOrigin = origin;
-  const typeLabel = origin === "video" ? "Video" : "Audio";
-  $("#historyNewDcp").textContent = `+ Nuovo DCP ${typeLabel}`;
-  $("#historyHeaderTitle").textContent = `Storico DCP ${typeLabel}`;
-  $("#historyPageTitle").textContent = `Storico DCP ${typeLabel}`;
+  const typeLabel = origin === "episode" ? "Puntate" : origin === "video" ? "Video" : "Audio";
+  $("#historyNewDcp").textContent = origin === "episode" ? "+ Nuova puntata" : `+ Nuovo DCP ${typeLabel}`;
+  $("#historyHeaderTitle").textContent = origin === "episode" ? "Storico Puntate" : `Storico DCP ${typeLabel}`;
+  $("#historyPageTitle").textContent = origin === "episode" ? "Storico Puntate" : `Storico DCP ${typeLabel}`;
   $("#historySearchInput").value = "";
   historyItems = [];
   showView("history");
@@ -558,7 +791,19 @@ async function loadHistory(origin = "audio") {
 }
 
 function openSavedReport(item) {
-  if (item.report_type === "video") {
+  if (item.report_type === "episode") {
+    const data = item.rows && !Array.isArray(item.rows) ? item.rows : {};
+    const source = data.source || { title: item.title, fps: 25, intervals: [], audioTracks: data.audio_tracks || [], videoTracks: data.video_tracks || [] };
+    const episode = {
+      id: `batch-episode-${++batchSequence}`, type: "episode", file: null, parsed: source, title: item.title,
+      selectedAudioTracks: new Set(data.audio_tracks || source.audioTracks || []), selectedVideoTracks: new Set(data.video_tracks || source.videoTracks || []),
+      exclusions: (data.exclusions || []).map((range) => ({ id: `range-${++batchSequence}`, from: range.from || framesToTc(range.start || 0, source.fps || 25), to: range.to || framesToTc(range.end || 0, source.fps || 25) })),
+      audioRows: cleanRows(data.audio, "audio"), videoRows: cleanRows(data.video, "video").sort((a,b) => a.name.localeCompare(b.name, "it", { sensitivity: "base", numeric: true })),
+      generated: true, savedId: item.id, search: ""
+    };
+    if (!episode.exclusions.length) episode.exclusions.push(newEpisodeRange());
+    episodeBatchItems = [episode]; $("#episodeEntryGrid").classList.add("hidden"); $("#episodeWorkspace").classList.remove("hidden"); $("#episodeBackButton").classList.remove("hidden"); renderEpisodeBatch(); showView("episode");
+  } else if (item.report_type === "video") {
     videoRows = cleanRows(item.rows, "video").sort((a, b) => a.name.localeCompare(b.name, "it", { sensitivity: "base", numeric: true }));
     $("#videoResultTitle").value = item.title; $("#videoSearchInput").value = ""; currentVideoSavedId = item.id;
     videoEntryGrid.classList.add("hidden"); videoWorkspace.classList.remove("hidden"); $("#videoBatchList").classList.add("hidden"); $("#videoFileSummary").classList.add("hidden"); $("#videoControls").classList.add("hidden");
@@ -955,6 +1200,8 @@ $("#iphoneAudioNav").addEventListener("click", showAudioLanding);
 $("#openVideo").addEventListener("click", showVideoLanding);
 $("#openVideoNav").addEventListener("click", showVideoLanding);
 $("#iphoneVideoNav").addEventListener("click", showVideoLanding);
+$("#openEpisode").addEventListener("click", showEpisodeLanding);
+$("#openEpisodeNav").addEventListener("click", showEpisodeLanding);
 $("#openCalculator").addEventListener("click", () => showView("calculator"));
 $("#openCalculatorNav").addEventListener("click", () => showView("calculator"));
 $("#iphoneCalculatorNav").addEventListener("click", () => showView("calculator"));
@@ -997,11 +1244,16 @@ $("#clearVideoSearch").addEventListener("click", () => { $("#videoSearchInput").
 $("#selectVisibleVideo").addEventListener("click", () => { filteredVideoRows().forEach((row) => { row.selected = true; }); renderVideoRows(); });
 $("#deselectVisibleVideo").addEventListener("click", () => { filteredVideoRows().forEach((row) => { row.selected = false; }); renderVideoRows(); });
 
+$("#episodeBackButton").addEventListener("click", showEpisodeLanding);
+$("#episodeBrowseButton").addEventListener("click", () => $("#episodeFileInput").click());
+setupDropZone($("#episodeDropZone"), $("#episodeFileInput"), loadEpisodeBatch);
+
 $("#openHistoryButton").addEventListener("click", () => loadHistory("audio"));
 $("#openVideoHistoryButton").addEventListener("click", () => loadHistory("video"));
-$("#historyBackButton").addEventListener("click", () => historyOrigin === "video" ? showVideoLanding() : showAudioLanding());
-$("#historyBackInline").addEventListener("click", () => historyOrigin === "video" ? showVideoLanding() : showAudioLanding());
-$("#historyNewDcp").addEventListener("click", () => historyOrigin === "video" ? newVideoDcp() : newAudioDcp());
+$("#openEpisodeHistoryButton").addEventListener("click", () => loadHistory("episode"));
+$("#historyBackButton").addEventListener("click", () => historyOrigin === "episode" ? showEpisodeLanding() : historyOrigin === "video" ? showVideoLanding() : showAudioLanding());
+$("#historyBackInline").addEventListener("click", () => historyOrigin === "episode" ? showEpisodeLanding() : historyOrigin === "video" ? showVideoLanding() : showAudioLanding());
+$("#historyNewDcp").addEventListener("click", () => historyOrigin === "episode" ? showEpisodeLanding() : historyOrigin === "video" ? newVideoDcp() : newAudioDcp());
 $("#historySearchInput").addEventListener("input", renderHistoryItems);
 $("#clearHistorySearch").addEventListener("click", () => { $("#historySearchInput").value = ""; renderHistoryItems(); $("#historySearchInput").focus(); });
 
@@ -1033,6 +1285,7 @@ $("#deleteTechnicalButton").addEventListener("click", deleteTechnicalSheet);
 window.addEventListener("afterprint", () => {
   delete document.body.dataset.printMode;
   document.querySelectorAll(".batch-report-card.print-target").forEach((node) => node.classList.remove("print-target"));
+  document.querySelectorAll(".episode-report-card.print-target").forEach((node) => node.classList.remove("print-target"));
 });
 
 function downloadCsv(title, rows) {

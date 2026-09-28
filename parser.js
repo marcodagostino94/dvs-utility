@@ -170,6 +170,53 @@ export function parseEdl(text, fps = 25) {
   return { title, fps, intervals, audioTracks, videoTracks };
 }
 
+export function normalizeExclusionRanges(ranges = []) {
+  const valid = ranges
+    .map((range) => ({ start: Number(range?.start), end: Number(range?.end) }))
+    .filter((range) => Number.isFinite(range.start) && Number.isFinite(range.end) && range.end > range.start)
+    .sort((a, b) => a.start - b.start || a.end - b.end);
+  const merged = [];
+  for (const range of valid) {
+    const previous = merged.at(-1);
+    if (previous && range.start <= previous.end) previous.end = Math.max(previous.end, range.end);
+    else merged.push({ ...range });
+  }
+  return merged;
+}
+
+export function excludeEdlRanges(parsed, ranges = []) {
+  const exclusions = normalizeExclusionRanges(ranges);
+  if (!exclusions.length) return { ...parsed, intervals: parsed.intervals.map((item) => ({ ...item })) };
+  const intervals = [];
+  for (const item of parsed.intervals) {
+    let pieces = [{ start: item.start, end: item.end }];
+    for (const exclusion of exclusions) {
+      const next = [];
+      for (const piece of pieces) {
+        if (exclusion.end <= piece.start || exclusion.start >= piece.end) {
+          next.push(piece);
+          continue;
+        }
+        if (exclusion.start > piece.start) next.push({ start: piece.start, end: Math.min(exclusion.start, piece.end) });
+        if (exclusion.end < piece.end) next.push({ start: Math.max(exclusion.end, piece.start), end: piece.end });
+      }
+      pieces = next;
+      if (!pieces.length) break;
+    }
+    pieces.forEach((piece, index) => {
+      intervals.push({
+        ...item,
+        start: piece.start,
+        end: piece.end,
+        recordIn: framesToTc(piece.start, parsed.fps),
+        recordOut: framesToTc(piece.end, parsed.fps),
+        exclusionPart: pieces.length > 1 ? index + 1 : undefined,
+      });
+    });
+  }
+  return { ...parsed, intervals, exclusions };
+}
+
 function mergeIntervals(items) {
   const sorted = [...items].sort((a, b) => a.start - b.start || a.end - b.end);
   const merged = [];

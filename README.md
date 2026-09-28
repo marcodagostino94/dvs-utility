@@ -2,7 +2,16 @@
 
 Web app/PWA indipendente per gli strumenti interni di Digital Video Service, coordinata graficamente con DVS Planning e DVS Gestionale.
 
-## Versione 3.7
+## Versione 3.8
+
+- nuovo modulo DCP Puntate con rapporto unico Video + Audio;
+- selezione indipendente delle tracce video e musicali;
+- esclusione precisa di uno o più intervalli `DA–A` sul Record TC della timeline;
+- sottrazione parziale degli intervalli anche quando tagliano una clip o una dissolvenza;
+- PDF unico con Immagini e Musiche e salvataggio automatico nello Storico Puntate;
+- Storico Puntate separato dagli storici Audio e Video, con ricerca, modifica ed eliminazione;
+- importazione multipla EDL anche per le puntate;
+- migrazione Supabase con privilegi espliciti per `anon` e `authenticated`.
 
 - Menu laterale coordinato al Planning: stessi tab Liquid Glass, con accento verde Utility.
 - voce iniziale del menu rinominata Dashboard, con icona a quattro quadratini;
@@ -48,6 +57,7 @@ Web app/PWA indipendente per gli strumenti interni di Digital Video Service, coo
 
 - **DCP Audio**: disponibile.
 - **DCP Video**: disponibile.
+- **DCP Puntate**: disponibile.
 - **Loudness**: disponibile.
 - **Scheda Tecnica**: disponibile.
 - **Calcolatrice Timecode**: disponibile.
@@ -88,6 +98,10 @@ Se la versione Audio era già installata, eseguire una sola volta:
 Per abilitare lo storico delle Schede Tecniche, eseguire una sola volta:
 
 `database/003_technical_sheets_history.sql`
+
+Per abilitare lo Storico Puntate, eseguire una sola volta:
+
+`database/004_dcp_episode_history.sql`
 
 ## Avvio locale
 

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { buildAudioReport, buildVideoReport, parseEdl } from "../parser.js";
+import { buildAudioReport, buildVideoReport, excludeEdlRanges, parseEdl, tcToFrames } from "../parser.js";
 
 const unitFixture = `TITLE: TEST
 FCM: NON-DROP FRAME
@@ -64,6 +64,20 @@ assert.deepEqual(buildVideoReport(parsedVideo, ["V1", "V2"]).map(({ name, durati
   ["GETTY 002.JPG", "00:00:05:00", false],
   ["ZEBRA.MOV", "00:00:10:00", false],
 ]);
+
+const excludedVideo = excludeEdlRanges(parsedVideo, [
+  { start: tcToFrames("01:00:02:00", 25), end: tcToFrames("01:00:04:00", 25) },
+  { start: tcToFrames("01:00:10:00", 25), end: tcToFrames("01:00:15:00", 25) },
+]);
+assert.deepEqual(buildVideoReport(excludedVideo, ["V1", "V2"]).map(({ name, duration }) => [name, duration]), [
+  ["ALFA.MOV", "00:00:03:12"],
+  ["ZEBRA.MOV", "00:00:08:00"],
+]);
+
+const excludedAudio = excludeEdlRanges(parseEdl(unitFixture, 25), [
+  { start: tcToFrames("01:00:04:00", 25), end: tcToFrames("01:00:06:00", 25) },
+]);
+assert.equal(buildAudioReport(excludedAudio, ["A5", "A6", "A7"])[0].duration, "00:00:15:00");
 
 const integrationPath = process.env.DVS_EDL_TEST_FILE;
 if (integrationPath && fs.existsSync(integrationPath)) {

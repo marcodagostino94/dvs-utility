@@ -37,6 +37,10 @@
             <span class="nav-icon video-outline" aria-hidden="true"></span>
             <span>DCP Video</span>
           </button>
+          <button class="nav-item" id="openEpisodeNav" type="button">
+            <span class="nav-icon episode-icon" aria-hidden="true">EP</span>
+            <span>DCP Puntate</span>
+          </button>
           <button class="nav-item" id="openLoudnessNav" type="button">
             <span class="nav-icon sound-icon" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
             <span>Loudness</span>
@@ -56,7 +60,7 @@
             <span class="nav-icon info-icon" aria-hidden="true">i</span>
             <span>Informazioni</span>
           </button>
-          <span class="build-pill">v3.7</span>
+          <span class="build-pill">v3.8</span>
         </div>
       </aside>
 
@@ -93,6 +97,15 @@
                   <svg viewBox="0 0 64 64"><rect x="10" y="16" width="44" height="32" rx="8" /><path d="m28 25 12 7-12 7z" /></svg>
                 </span>
                 <span class="card-copy"><strong>DCP Video</strong></span>
+                <span class="card-launch" aria-hidden="true">↗</span>
+              </button>
+
+              <button class="utility-card episode-card enabled-card" id="openEpisode" type="button">
+                <span class="availability"><i></i> Disponibile</span>
+                <span class="card-orb episode-orb" aria-hidden="true">
+                  <svg viewBox="0 0 64 64"><rect x="9" y="14" width="46" height="36" rx="8"/><path d="M18 26h13M18 34h20M18 42h16M44 24v17M39 29l5-5 5 5"/></svg>
+                </span>
+                <span class="card-copy"><strong>DCP Puntate</strong></span>
                 <span class="card-launch" aria-hidden="true">↗</span>
               </button>
 
@@ -221,7 +234,7 @@
               </section>
               <button class="panel history-entry-card" id="openVideoHistoryButton" type="button">
                 <span class="history-entry-top"><small>ARCHIVIO</small><span class="history-card-icon" aria-hidden="true">↺</span></span>
-                <span class="history-entry-copy"><strong>Storico DCP</strong><em>Apri i rapporti Audio e Video già salvati.</em></span>
+                <span class="history-entry-copy"><strong>Storico DCP</strong><em>Apri e modifica i rapporti Video già salvati.</em></span>
                 <b aria-hidden="true">›</b>
               </button>
             </div>
@@ -252,6 +265,33 @@
                 <div class="empty-result hidden" id="emptyVideoResult">Nessuna clip trovata.</div>
                 <div class="table-wrap" id="videoTableWrap"><table><thead><tr><th class="select-column"><span class="sr-only">Seleziona</span></th><th class="number-column">N.</th><th>Nome clip</th><th class="action-column"><span class="sr-only">Azioni</span></th></tr></thead><tbody id="videoResultBody"></tbody></table></div>
               </section>
+            </section>
+          </div>
+        </section>
+
+        <section class="view episode-view" id="episodeView">
+          <header class="module-topbar">
+            <button class="back-button hidden" id="episodeBackButton" aria-label="Torna a importazione e storico">‹</button>
+            <div><span>Utility</span><strong>DCP Puntate</strong></div>
+          </header>
+          <div class="module-content">
+            <div class="module-heading"><p class="eyebrow">RAPPORTO COMPLETO</p><h1>DCP Puntate</h1></div>
+            <div class="audio-entry-grid" id="episodeEntryGrid">
+              <section class="panel import-panel episode-import" id="episodeDropZone">
+                <input id="episodeFileInput" type="file" accept=".edl,.txt" multiple hidden />
+                <div class="upload-icon episode-upload-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 42V14m0 0L21 25m11-11 11 11"/><path d="M14 38v8a6 6 0 0 0 6 6h24a6 6 0 0 0 6-6v-8"/></svg></div>
+                <div><h2>Carica uno o più file EDL</h2><p>Ogni EDL genera una puntata indipendente con immagini e musiche.</p></div>
+                <button class="primary-button" id="episodeBrowseButton" type="button">Scegli file EDL</button>
+                <p class="privacy-note"><span>✓</span> Audio, video ed esclusioni nello stesso DCP</p>
+              </section>
+              <button class="panel history-entry-card episode-history-card" id="openEpisodeHistoryButton" type="button">
+                <span class="history-entry-top"><small>ARCHIVIO</small><span class="history-card-icon" aria-hidden="true">↺</span></span>
+                <span class="history-entry-copy"><strong>Storico Puntate</strong><em>Riapri, modifica, genera nuovamente il PDF o elimina le puntate salvate.</em></span>
+                <b aria-hidden="true">›</b>
+              </button>
+            </div>
+            <section class="workspace hidden" id="episodeWorkspace">
+              <div class="batch-list" id="episodeBatchList"></div>
             </section>
           </div>
         </section>
@@ -427,7 +467,7 @@
               <h2>DVS Utility</h2>
               <p>Applicazione per gli strumenti tecnici di Digital Video Service.</p>
               <dl>
-                <div><dt>Versione</dt><dd>v3.7</dd></div>
+                <div><dt>Versione</dt><dd>v3.8</dd></div>
                 <div><dt>Ideazione e sviluppo</dt><dd>Marco D'Agostino per Digital Video Service</dd></div>
                 <div><dt>Sincronizzazione</dt><dd>Supabase Database</dd></div>
               </dl>
