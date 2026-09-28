@@ -113,9 +113,16 @@ export function parseEdl(text, fps = 25) {
   const sourceTable = parseSourceTable(lines);
   const blocks = parseBlocks(lines);
   const intervals = [];
+  let timelineStart = null;
+  let timelineEnd = null;
 
   for (const block of blocks) {
     const parsedLines = block.eventLines.map((line) => parseEventLine(line, fps)).filter(Boolean);
+    for (const event of parsedLines) {
+      if (event.start == null || event.end == null || event.end <= event.start) continue;
+      timelineStart = timelineStart == null ? event.start : Math.min(timelineStart, event.start);
+      timelineEnd = timelineEnd == null ? event.end : Math.max(timelineEnd, event.end);
+    }
     const fromName = commentValue(block.comments, "FROM CLIP NAME");
     const toName = commentValue(block.comments, "TO CLIP NAME");
     const sourceFile = commentValue(block.comments, "SOURCE FILE");
@@ -167,7 +174,7 @@ export function parseEdl(text, fps = 25) {
   const videoTracks = [...new Set(intervals.filter((item) => item.track.startsWith("V")).map((item) => item.track))]
     .sort((a, b) => Number(a.slice(1) || 1) - Number(b.slice(1) || 1));
 
-  return { title, fps, intervals, audioTracks, videoTracks };
+  return { title, fps, intervals, audioTracks, videoTracks, timelineStart, timelineEnd };
 }
 
 export function normalizeExclusionRanges(ranges = []) {
@@ -215,6 +222,28 @@ export function excludeEdlRanges(parsed, ranges = []) {
     });
   }
   return { ...parsed, intervals, exclusions };
+}
+
+export function timelineDuration(parsed, ranges = []) {
+  const starts = (parsed?.intervals || []).map((item) => item.start).filter(Number.isFinite);
+  const ends = (parsed?.intervals || []).map((item) => item.end).filter(Number.isFinite);
+  const start = Number.isFinite(parsed?.timelineStart) ? parsed.timelineStart : (starts.length ? Math.min(...starts) : 0);
+  const end = Number.isFinite(parsed?.timelineEnd) ? parsed.timelineEnd : (ends.length ? Math.max(...ends) : start);
+  const originalFrames = Math.max(0, end - start);
+  const excludedFrames = normalizeExclusionRanges(ranges).reduce((total, range) => {
+    const overlapStart = Math.max(start, range.start);
+    const overlapEnd = Math.min(end, range.end);
+    return total + Math.max(0, overlapEnd - overlapStart);
+  }, 0);
+  return {
+    start,
+    end,
+    originalFrames,
+    excludedFrames: Math.min(originalFrames, excludedFrames),
+    effectiveFrames: Math.max(0, originalFrames - excludedFrames),
+    original: framesToTc(originalFrames, parsed?.fps || 25),
+    effective: framesToTc(Math.max(0, originalFrames - excludedFrames), parsed?.fps || 25),
+  };
 }
 
 function mergeIntervals(items) {

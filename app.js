@@ -1,4 +1,4 @@
-import { buildAudioReport, buildVideoReport, excludeEdlRanges, framesToTc, parseEdl, tcToFrames } from "./parser.js";
+import { buildAudioReport, buildVideoReport, excludeEdlRanges, framesToTc, parseEdl, tcToFrames, timelineDuration } from "./parser.js";
 import { analyzeWav, loudnessLimits, normalizeWav, parseWav } from "./loudness.js";
 import { technicalDuration } from "./technical.js";
 import { filterHistoryItems } from "./history.js";
@@ -30,6 +30,10 @@ let batchSequence = 0;
 let historyOrigin = "audio";
 let historyItems = [];
 let currentTechnicalSavedId = null;
+let pendingTechnicalPdfFiles = [];
+let technicalHistoryItems = [];
+let currentStoredTechnicalPdf = null;
+const TECHNICAL_PDF_BUCKET = "technical-sheets-pdf";
 
 function toast(message) {
   const element = $("#toast");
@@ -339,6 +343,10 @@ function episodeRanges(item, notify = true) {
   return ranges;
 }
 
+function episodeDurationInfo(item) {
+  return timelineDuration(item.parsed, []);
+}
+
 async function loadEpisodeBatch(files) {
   const candidates = (Array.isArray(files) ? files : [files]).filter((file) => file && /\.(edl|txt)$/i.test(file.name));
   if (!candidates.length) return toast("Seleziona almeno un file EDL valido");
@@ -434,6 +442,7 @@ function generateEpisode(item) {
 
 function episodePayload(item) {
   const ranges = episodeRanges(item, false) || [];
+  const duration = timelineDuration(item.parsed, []);
   return {
     title: item.title.trim() || "DCP Puntata senza titolo", report_type: "episode",
     rows: {
@@ -442,7 +451,8 @@ function episodePayload(item) {
       video: item.videoRows.map(({ name, duration, frames, selected }) => ({ name, duration, frames, selected: Boolean(selected) })),
       audio_tracks: [...item.selectedAudioTracks], video_tracks: [...item.selectedVideoTracks],
       exclusions: ranges.map(({ from, to, start, end }) => ({ from, to, start, end })),
-      source: item.parsed ? { title: item.parsed.title, fps: item.parsed.fps, intervals: item.parsed.intervals, audioTracks: item.parsed.audioTracks, videoTracks: item.parsed.videoTracks } : null
+      duration: { value: duration.original, frames: duration.originalFrames },
+      source: item.parsed ? { title: item.parsed.title, fps: item.parsed.fps, intervals: item.parsed.intervals, audioTracks: item.parsed.audioTracks, videoTracks: item.parsed.videoTracks, timelineStart: item.parsed.timelineStart, timelineEnd: item.parsed.timelineEnd } : null
     }
   };
 }
@@ -511,6 +521,10 @@ function buildEpisodeCard(item) {
   const head = makeElement("div", "batch-file-summary"); head.append(makeElement("div", "file-badge episode-file-badge", "EDL"));
   const meta = makeElement("div", "file-meta"); meta.append(makeElement("strong", "", item.file?.name || item.title), makeElement("span", "", `${item.parsed?.title || "Sequenza Avid"} · ${item.parsed?.videoTracks?.length || 0} video · ${item.parsed?.audioTracks?.length || 0} audio`)); head.append(meta);
   const dismiss = makeElement("button", "secondary-button", "Rimuovi"); dismiss.type = "button"; dismiss.addEventListener("click", () => { episodeBatchItems = episodeBatchItems.filter((entry) => entry.id !== item.id); if (!episodeBatchItems.length) showEpisodeLanding(); else renderEpisodeBatch(); }); head.append(dismiss); card.append(head);
+  const duration = episodeDurationInfo(item);
+  const durationStrip = makeElement("div", "episode-duration-strip");
+  const generalDuration = makeElement("div", "episode-duration-item"); generalDuration.append(makeElement("small", "", "DURATA PUNTATA"), makeElement("strong", "", duration.original));
+  durationStrip.append(generalDuration); card.append(durationStrip);
   if (item.parsed) {
     const controls = makeElement("section", "episode-controls-grid"); controls.append(episodeTrackSelector(item, "video"), episodeTrackSelector(item, "audio"), episodeExclusions(item)); card.append(controls);
     const generate = makeElement("button", "primary-button wide episode-generate", item.generated ? "Rigenera DCP Puntata" : "Genera DCP Puntata"); generate.type = "button"; generate.addEventListener("click", () => generateEpisode(item)); card.append(generate);
@@ -518,7 +532,9 @@ function buildEpisodeCard(item) {
   if (!item.generated) return card;
   const results = makeElement("section", "episode-results");
   const header = makeElement("div", "results-header episode-results-header"); const titleArea = makeElement("div", "result-title-area"); titleArea.append(makeElement("p", "step-label", "DCP PUNTATA"));
-  const title = document.createElement("input"); title.className = "report-title-input"; title.value = item.title; title.addEventListener("input", () => { item.title = title.value; }); titleArea.append(title, makeElement("p", "muted", "Documento unico con immagini e musiche"));
+  const title = document.createElement("input"); title.className = "report-title-input"; title.value = item.title; title.addEventListener("input", () => { item.title = title.value; });
+  const finalDuration = makeElement("strong", "episode-final-duration", `DURATA PUNTATA ${duration.original}`);
+  titleArea.append(title, finalDuration, makeElement("p", "muted", "Documento unico con immagini e musiche"));
   const actions = makeElement("div", "result-actions episode-actions"); const save = makeElement("button", "save-button", item.savedId ? "Aggiorna puntata" : "Salva puntata"); save.type = "button"; save.addEventListener("click", () => saveEpisode(item, save)); actions.append(save);
   const pdf = makeElement("button", "primary-button", "PDF"); pdf.type = "button"; pdf.addEventListener("click", () => pdfEpisode(item, save, card)); actions.append(pdf);
   if (item.savedId) { const del = makeElement("button", "danger-button", "Elimina puntata"); del.type = "button"; del.addEventListener("click", () => deleteEpisode(item)); actions.append(del); }
@@ -1092,10 +1108,16 @@ function updateTechnicalButtons() {
   $("#deleteTechnicalButton").classList.toggle("hidden", !currentTechnicalSavedId);
 }
 
-function showTechnicalLanding() {
-  $("#technicalEntryGrid").classList.remove("hidden");
+function hideTechnicalPanels() {
   $("#technicalWorkspace").classList.add("hidden");
   $("#technicalHistoryPanel").classList.add("hidden");
+  $("#technicalPdfUploadPanel").classList.add("hidden");
+  $("#technicalPdfDetail").classList.add("hidden");
+}
+
+function showTechnicalLanding() {
+  $("#technicalEntryGrid").classList.remove("hidden");
+  hideTechnicalPanels();
   $("#technicalBackButton").classList.add("hidden");
   showView("technical");
 }
@@ -1103,10 +1125,72 @@ function showTechnicalLanding() {
 function newTechnicalSheet() {
   currentTechnicalSavedId = null; restoreTechnicalForm({}); updateTechnicalButtons();
   $("#technicalEntryGrid").classList.add("hidden");
-  $("#technicalHistoryPanel").classList.add("hidden");
+  hideTechnicalPanels();
   $("#technicalWorkspace").classList.remove("hidden");
   $("#technicalBackButton").classList.remove("hidden");
   showView("technical");
+}
+
+function showTechnicalPdfUpload() {
+  pendingTechnicalPdfFiles = [];
+  $("#technicalEntryGrid").classList.add("hidden"); hideTechnicalPanels();
+  $("#technicalPdfUploadPanel").classList.remove("hidden"); $("#technicalBackButton").classList.remove("hidden");
+  renderTechnicalPdfSelection(); showView("technical");
+}
+
+function selectTechnicalPdfFiles(files) {
+  const candidates = (Array.isArray(files) ? files : [files]).filter((file) => file && (file.type === "application/pdf" || /\.pdf$/i.test(file.name)));
+  if (!candidates.length) return toast("Seleziona almeno un file PDF");
+  let rejected = 0;
+  candidates.forEach((file) => {
+    if (file.size > 50 * 1024 * 1024) { rejected += 1; return; }
+    const key = `${file.name}|${file.size}|${file.lastModified}`;
+    if (pendingTechnicalPdfFiles.some((item) => item.key === key)) return;
+    pendingTechnicalPdfFiles.push({ key, file, title: file.name.replace(/\.pdf$/i, "").replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim() });
+  });
+  if (rejected) toast(`${rejected} PDF ignorati perché superano 50 MB`);
+  $("#technicalPdfFileInput").value = ""; renderTechnicalPdfSelection();
+}
+
+function renderTechnicalPdfSelection() {
+  const hasFiles = pendingTechnicalPdfFiles.length > 0;
+  $("#technicalPdfSelection").classList.toggle("hidden", !hasFiles);
+  $("#technicalPdfDropZone").classList.toggle("compact", hasFiles);
+  const list = $("#technicalPdfFileList"); list.replaceChildren();
+  pendingTechnicalPdfFiles.forEach((item, index) => {
+    const row = makeElement("div", "technical-pdf-file-row");
+    const icon = makeElement("span", "technical-pdf-mini-icon", "PDF");
+    const copy = makeElement("div", "technical-pdf-file-copy");
+    const input = document.createElement("input"); input.value = item.title; input.ariaLabel = `Titolo PDF ${index + 1}`; input.addEventListener("input", () => { item.title = input.value; });
+    copy.append(input, makeElement("small", "", `${item.file.name} · ${formatFileSize(item.file.size)}`));
+    const remove = makeElement("button", "remove-button", "×"); remove.type = "button"; remove.title = "Rimuovi PDF"; remove.addEventListener("click", () => { pendingTechnicalPdfFiles.splice(index, 1); renderTechnicalPdfSelection(); });
+    row.append(icon, copy, remove); list.append(row);
+  });
+}
+
+async function saveTechnicalPdfs() {
+  if (!db) return toast("Database non configurato");
+  if (!pendingTechnicalPdfFiles.length) return toast("Seleziona almeno un PDF");
+  if (pendingTechnicalPdfFiles.some((item) => !item.title.trim())) return toast("Inserisci un titolo per ogni PDF");
+  const button = $("#saveTechnicalPdfs"); button.disabled = true;
+  let completed = 0;
+  try {
+    for (const item of pendingTechnicalPdfFiles) {
+      button.textContent = `Salvataggio ${completed + 1} di ${pendingTechnicalPdfFiles.length}…`;
+      const today = new Date().toISOString().slice(0, 10);
+      const id = crypto.randomUUID();
+      const storagePath = `${today}/${id}.pdf`;
+      const upload = await db.storage.from(TECHNICAL_PDF_BUCKET).upload(storagePath, item.file, { contentType: "application/pdf", upsert: false });
+      if (upload.error) throw upload.error;
+      const inserted = await db.from("technical_pdf_files").insert({ title: item.title.trim(), file_name: item.file.name, storage_path: storagePath, file_size: item.file.size, mime_type: "application/pdf" }).select("id").single();
+      if (inserted.error) { await db.storage.from(TECHNICAL_PDF_BUCKET).remove([storagePath]); throw inserted.error; }
+      completed += 1;
+    }
+    toast(`${completed} ${completed === 1 ? "PDF archiviato" : "PDF archiviati"} nello storico`);
+    pendingTechnicalPdfFiles = []; await loadTechnicalHistory();
+  } catch (error) {
+    toast(error.statusCode === "404" || error.code === "42P01" ? "Esegui il file SQL 005 per abilitare l’archivio PDF" : `Caricamento non riuscito: ${error.message}`);
+  } finally { button.disabled = false; button.textContent = "Salva nello storico"; }
 }
 
 async function saveTechnicalSheet() {
@@ -1128,27 +1212,92 @@ async function saveTechnicalSheet() {
   } finally { button.disabled = false; }
 }
 
-async function loadTechnicalHistory() {
-  $("#technicalEntryGrid").classList.add("hidden"); $("#technicalWorkspace").classList.add("hidden");
-  $("#technicalHistoryPanel").classList.remove("hidden"); $("#technicalBackButton").classList.remove("hidden"); showView("technical");
-  const list = $("#technicalHistoryList"); list.innerHTML = '<div class="history-loading">Caricamento storico…</div>';
-  $("#emptyTechnicalHistory").classList.add("hidden");
-  if (!db) { list.innerHTML = '<div class="history-error">Database non configurato.</div>'; return; }
-  const { data, error } = await db.from("technical_sheets").select("id,title,sheet_data,created_at,updated_at").order("updated_at", { ascending: false });
-  if (error) { list.innerHTML = `<div class="history-error">Storico non disponibile: ${error.code === "42P01" ? "esegui la migrazione SQL della Scheda Tecnica" : error.message}</div>`; return; }
-  list.replaceChildren(); $("#emptyTechnicalHistory").classList.toggle("hidden", data.length > 0);
-  data.forEach((item) => {
-    const button = document.createElement("button"); button.type = "button"; button.className = "history-row";
-    button.innerHTML = '<span class="history-row-icon">SCHEDA</span><span><strong></strong><small></small></span><em></em><b>›</b>';
+function renderTechnicalHistory() {
+  const query = $("#technicalHistorySearchInput").value.trim().toLocaleLowerCase("it");
+  const visible = technicalHistoryItems.filter((item) => !query || item.title.toLocaleLowerCase("it").includes(query) || String(item.file_name || "").toLocaleLowerCase("it").includes(query));
+  const list = $("#technicalHistoryList"); list.replaceChildren();
+  visible.forEach((item) => {
+    const button = document.createElement("button"); button.type = "button"; button.className = `history-row${item.kind === "pdf" ? " technical-pdf-history-row" : ""}`;
+    button.innerHTML = '<span class="history-row-icon"></span><span><strong></strong><small></small></span><em></em><b>›</b>';
+    button.querySelector(".history-row-icon").textContent = item.kind === "pdf" ? "PDF RAI" : "SCHEDA";
     button.querySelector("strong").textContent = item.title;
-    button.querySelector("small").textContent = `Aggiornata ${formatDate(item.updated_at)}`;
-    button.querySelector("em").textContent = formatDate(item.created_at);
-    button.addEventListener("click", () => {
-      currentTechnicalSavedId = item.id; restoreTechnicalForm(item.sheet_data || {}); updateTechnicalButtons();
-      $("#technicalHistoryPanel").classList.add("hidden"); $("#technicalWorkspace").classList.remove("hidden"); showView("technical");
-    });
+    button.querySelector("small").textContent = item.kind === "pdf" ? `${item.file_name} · ${formatFileSize(item.file_size || 0)}` : `Aggiornata ${formatDate(item.updated_at)}`;
+    button.querySelector("em").textContent = formatDate(item.updated_at || item.created_at);
+    button.addEventListener("click", () => item.kind === "pdf" ? openStoredTechnicalPdfDetail(item) : openGeneratedTechnicalSheet(item));
     list.append(button);
   });
+  $("#technicalHistoryCount").textContent = `${visible.length} di ${technicalHistoryItems.length} schede`;
+  const empty = $("#emptyTechnicalHistory"); empty.textContent = technicalHistoryItems.length ? "Nessuna scheda corrisponde alla ricerca." : "Non ci sono ancora schede tecniche salvate."; empty.classList.toggle("hidden", visible.length > 0);
+}
+
+function openGeneratedTechnicalSheet(item) {
+  currentTechnicalSavedId = item.id; restoreTechnicalForm(item.sheet_data || {}); updateTechnicalButtons(); hideTechnicalPanels();
+  $("#technicalWorkspace").classList.remove("hidden"); $("#technicalBackButton").classList.remove("hidden"); showView("technical");
+}
+
+function openStoredTechnicalPdfDetail(item) {
+  currentStoredTechnicalPdf = item; hideTechnicalPanels();
+  $("#technicalPdfDetailTitle").value = item.title;
+  $("#technicalPdfDetailMeta").textContent = `${item.file_name} · ${formatFileSize(item.file_size || 0)} · Archiviato ${formatDate(item.created_at)}`;
+  $("#technicalPdfDetail").classList.remove("hidden"); $("#technicalBackButton").classList.remove("hidden"); showView("technical");
+}
+
+async function loadTechnicalHistory() {
+  $("#technicalEntryGrid").classList.add("hidden"); hideTechnicalPanels();
+  $("#technicalHistoryPanel").classList.remove("hidden"); $("#technicalBackButton").classList.remove("hidden"); showView("technical");
+  const list = $("#technicalHistoryList"); list.innerHTML = '<div class="history-loading">Caricamento storico…</div>';
+  $("#technicalHistorySearchInput").value = ""; $("#technicalHistoryCount").textContent = ""; $("#emptyTechnicalHistory").classList.add("hidden");
+  if (!db) { list.innerHTML = '<div class="history-error">Database non configurato.</div>'; return; }
+  const [generated, uploaded] = await Promise.all([
+    db.from("technical_sheets").select("id,title,sheet_data,created_at,updated_at"),
+    db.from("technical_pdf_files").select("id,title,file_name,storage_path,file_size,mime_type,created_at,updated_at")
+  ]);
+  if (generated.error) { list.innerHTML = `<div class="history-error">Storico non disponibile: ${generated.error.code === "42P01" ? "esegui la migrazione SQL della Scheda Tecnica" : generated.error.message}</div>`; return; }
+  if (uploaded.error && uploaded.error.code !== "42P01") { list.innerHTML = `<div class="history-error">Archivio PDF non disponibile: ${uploaded.error.message}</div>`; return; }
+  technicalHistoryItems = [
+    ...(generated.data || []).map((item) => ({ ...item, kind: "generated" })),
+    ...(uploaded.data || []).map((item) => ({ ...item, kind: "pdf" }))
+  ].sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at));
+  renderTechnicalHistory();
+  if (uploaded.error?.code === "42P01") toast("Esegui il file SQL 005 per abilitare l’archivio PDF RAI");
+}
+
+async function technicalPdfBlob(item = currentStoredTechnicalPdf) {
+  if (!item) return null;
+  const result = await db.storage.from(TECHNICAL_PDF_BUCKET).download(item.storage_path);
+  if (result.error) { toast(`PDF non disponibile: ${result.error.message}`); return null; }
+  return result.data;
+}
+
+async function openStoredTechnicalPdfFile() {
+  const preview = window.open("", "_blank");
+  const blob = await technicalPdfBlob();
+  if (!blob) { preview?.close(); return; }
+  const url = URL.createObjectURL(blob);
+  if (preview) preview.location.href = url; else toast("Il browser ha bloccato l’apertura del PDF");
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+async function downloadStoredTechnicalPdfFile() {
+  const blob = await technicalPdfBlob(); if (!blob) return;
+  const url = URL.createObjectURL(blob); const anchor = document.createElement("a"); anchor.href = url; anchor.download = currentStoredTechnicalPdf.file_name || `${currentStoredTechnicalPdf.title}.pdf`; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
+async function renameStoredTechnicalPdf() {
+  if (!currentStoredTechnicalPdf) return;
+  const title = $("#technicalPdfDetailTitle").value.trim(); if (!title) return toast("Inserisci un titolo");
+  const result = await db.from("technical_pdf_files").update({ title }).eq("id", currentStoredTechnicalPdf.id).select("updated_at").single();
+  if (result.error) return toast(`Aggiornamento non riuscito: ${result.error.message}`);
+  currentStoredTechnicalPdf.title = title; currentStoredTechnicalPdf.updated_at = result.data.updated_at; toast("Titolo aggiornato");
+}
+
+async function deleteStoredTechnicalPdf() {
+  if (!currentStoredTechnicalPdf || !confirm(`Eliminare definitivamente “${currentStoredTechnicalPdf.title}” e il relativo PDF?`)) return;
+  const storage = await db.storage.from(TECHNICAL_PDF_BUCKET).remove([currentStoredTechnicalPdf.storage_path]);
+  if (storage.error) return toast(`Eliminazione PDF non riuscita: ${storage.error.message}`);
+  const record = await db.from("technical_pdf_files").delete().eq("id", currentStoredTechnicalPdf.id);
+  if (record.error) return toast(`Eliminazione dati non riuscita: ${record.error.message}`);
+  currentStoredTechnicalPdf = null; toast("PDF eliminato dallo storico"); await loadTechnicalHistory();
 }
 
 async function deleteTechnicalSheet() {
@@ -1274,14 +1423,27 @@ $("#downloadNormalizedButton").addEventListener("click", downloadNormalizedWav);
 initTechnicalForm();
 $("#technicalForm").addEventListener("submit", printTechnicalSheet);
 $("#clearTechnicalForm").addEventListener("click", () => { if (confirm("Vuoi cancellare tutti i dati inseriti nella scheda?")) restoreTechnicalForm({}); });
-$("#technicalBackButton").addEventListener("click", showTechnicalLanding);
+$("#technicalBackButton").addEventListener("click", () => $("#technicalPdfDetail").classList.contains("hidden") ? showTechnicalLanding() : loadTechnicalHistory());
 $("#newTechnicalButton").addEventListener("click", newTechnicalSheet);
+$("#uploadTechnicalPdfButton").addEventListener("click", showTechnicalPdfUpload);
 $("#openTechnicalHistoryButton").addEventListener("click", loadTechnicalHistory);
 $("#technicalHistoryBackInline").addEventListener("click", showTechnicalLanding);
+$("#technicalHistoryUpload").addEventListener("click", showTechnicalPdfUpload);
 $("#technicalHistoryNew").addEventListener("click", newTechnicalSheet);
 $("#newTechnicalFromFormButton").addEventListener("click", newTechnicalSheet);
 $("#saveTechnicalButton").addEventListener("click", saveTechnicalSheet);
 $("#deleteTechnicalButton").addEventListener("click", deleteTechnicalSheet);
+$("#technicalPdfBrowseButton").addEventListener("click", () => $("#technicalPdfFileInput").click());
+$("#technicalPdfAddMore").addEventListener("click", () => $("#technicalPdfFileInput").click());
+setupDropZone($("#technicalPdfDropZone"), $("#technicalPdfFileInput"), selectTechnicalPdfFiles);
+$("#clearTechnicalPdfSelection").addEventListener("click", () => { pendingTechnicalPdfFiles = []; renderTechnicalPdfSelection(); });
+$("#saveTechnicalPdfs").addEventListener("click", saveTechnicalPdfs);
+$("#technicalHistorySearchInput").addEventListener("input", renderTechnicalHistory);
+$("#clearTechnicalHistorySearch").addEventListener("click", () => { $("#technicalHistorySearchInput").value = ""; renderTechnicalHistory(); $("#technicalHistorySearchInput").focus(); });
+$("#openStoredTechnicalPdf").addEventListener("click", openStoredTechnicalPdfFile);
+$("#downloadStoredTechnicalPdf").addEventListener("click", downloadStoredTechnicalPdfFile);
+$("#renameStoredTechnicalPdf").addEventListener("click", renameStoredTechnicalPdf);
+$("#deleteStoredTechnicalPdf").addEventListener("click", deleteStoredTechnicalPdf);
 window.addEventListener("afterprint", () => {
   delete document.body.dataset.printMode;
   document.querySelectorAll(".batch-report-card.print-target").forEach((node) => node.classList.remove("print-target"));

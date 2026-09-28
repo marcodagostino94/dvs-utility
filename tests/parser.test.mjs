@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { buildAudioReport, buildVideoReport, excludeEdlRanges, parseEdl, tcToFrames } from "../parser.js";
+import { buildAudioReport, buildVideoReport, excludeEdlRanges, parseEdl, tcToFrames, timelineDuration } from "../parser.js";
 
 const unitFixture = `TITLE: TEST
 FCM: NON-DROP FRAME
@@ -59,6 +59,7 @@ FCM: NON-DROP FRAME
 *SOURCE FILE: ALFA.MOV`;
 const parsedVideo = parseEdl(videoFixture, 25);
 assert.deepEqual(parsedVideo.videoTracks, ["V1", "V2"]);
+assert.equal(timelineDuration(parsedVideo).original, "00:00:18:12");
 assert.deepEqual(buildVideoReport(parsedVideo, ["V1", "V2"]).map(({ name, duration, selected }) => [name, duration, selected]), [
   ["ALFA.MOV", "00:00:03:12", false],
   ["GETTY 002.JPG", "00:00:05:00", false],

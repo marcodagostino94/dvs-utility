@@ -60,7 +60,7 @@
             <span class="nav-icon info-icon" aria-hidden="true">i</span>
             <span>Informazioni</span>
           </button>
-          <span class="build-pill">v3.8</span>
+          <span class="build-pill">v3.9</span>
         </div>
       </aside>
 
@@ -383,10 +383,31 @@
           <header class="module-topbar"><button class="back-button hidden" id="technicalBackButton" aria-label="Torna a inserimento e storico">‹</button><div><span>Utility</span><strong>Scheda Tecnica</strong></div><span class="secure-label"><i></i> Database DVS</span></header>
           <div class="module-content technical-content">
             <div class="module-heading"><p class="eyebrow">DOCUMENTO RAI</p><h1>Scheda Tecnica</h1></div>
-            <div class="audio-entry-grid" id="technicalEntryGrid">
+            <div class="technical-entry-grid" id="technicalEntryGrid">
               <button class="panel technical-entry-card" id="newTechnicalButton" type="button"><span class="technical-entry-icon">＋</span><span><strong>Inserisci nuova scheda</strong><small>Compila un nuovo documento tecnico RAI</small></span><b>›</b></button>
+              <button class="panel technical-entry-card technical-upload-entry" id="uploadTechnicalPdfButton" type="button"><span class="technical-entry-icon pdf-icon">PDF</span><span><strong>Archivia PDF RAI</strong><small>Carica una o più schede tecniche ricevute dalla RAI</small></span><b>›</b></button>
               <button class="panel technical-entry-card" id="openTechnicalHistoryButton" type="button"><span class="technical-entry-icon history-icon">≡</span><span><strong>Storico schede</strong><small>Riapri, modifica, elimina o genera nuovamente il PDF</small></span><b>›</b></button>
             </div>
+
+            <section class="panel technical-pdf-upload-panel hidden" id="technicalPdfUploadPanel">
+              <input id="technicalPdfFileInput" type="file" accept="application/pdf,.pdf" multiple hidden>
+              <div class="technical-upload-dropzone" id="technicalPdfDropZone">
+                <div class="technical-entry-icon pdf-icon">PDF</div>
+                <div><h2>Archivia schede tecniche RAI</h2><p>Trascina qui uno o più PDF oppure selezionali dal Mac.</p></div>
+                <button class="primary-button" id="technicalPdfBrowseButton" type="button">Scegli PDF</button>
+              </div>
+              <div class="hidden" id="technicalPdfSelection">
+                <div class="section-heading"><div><p class="step-label">PDF SELEZIONATI</p><h2>Controlla i titoli</h2></div><button class="text-button" id="clearTechnicalPdfSelection" type="button">Svuota</button></div>
+                <div class="technical-pdf-file-list" id="technicalPdfFileList"></div>
+                <div class="technical-upload-actions"><button class="secondary-button" id="technicalPdfAddMore" type="button">Aggiungi altri PDF</button><button class="save-button" id="saveTechnicalPdfs" type="button">Salva nello storico</button></div>
+              </div>
+            </section>
+
+            <section class="panel technical-pdf-detail hidden" id="technicalPdfDetail">
+              <div class="technical-pdf-detail-icon">PDF</div>
+              <div class="technical-pdf-detail-copy"><p class="step-label">SCHEDA TECNICA RAI</p><input id="technicalPdfDetailTitle" class="report-title-input" aria-label="Titolo PDF RAI"><span id="technicalPdfDetailMeta"></span></div>
+              <div class="technical-pdf-detail-actions"><button class="secondary-button" id="openStoredTechnicalPdf" type="button">Apri PDF</button><button class="primary-button" id="downloadStoredTechnicalPdf" type="button">Scarica PDF</button><button class="save-button" id="renameStoredTechnicalPdf" type="button">Aggiorna titolo</button><button class="danger-button" id="deleteStoredTechnicalPdf" type="button">Elimina</button></div>
+            </section>
 
             <div class="hidden" id="technicalWorkspace">
               <form id="technicalForm" class="technical-form">
@@ -432,7 +453,8 @@
             </div>
 
             <section class="panel history-panel hidden" id="technicalHistoryPanel">
-              <div class="history-toolbar"><button class="secondary-button" id="technicalHistoryBackInline">‹ Torna indietro</button><button class="primary-button" id="technicalHistoryNew">+ Nuova scheda</button></div>
+              <div class="history-toolbar"><button class="secondary-button" id="technicalHistoryBackInline">‹ Torna indietro</button><div class="history-toolbar-actions"><button class="secondary-button" id="technicalHistoryUpload" type="button">+ Archivia PDF</button><button class="primary-button" id="technicalHistoryNew">+ Nuova scheda</button></div></div>
+              <div class="history-search-bar"><label class="video-search history-search"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><input id="technicalHistorySearchInput" type="search" placeholder="Cerca per titolo"><button id="clearTechnicalHistorySearch" type="button" aria-label="Cancella ricerca">×</button></label><span id="technicalHistoryCount"></span></div>
               <div class="history-list" id="technicalHistoryList"></div>
               <div class="empty-result hidden" id="emptyTechnicalHistory">Non ci sono ancora schede tecniche salvate.</div>
             </section>
@@ -467,7 +489,7 @@
               <h2>DVS Utility</h2>
               <p>Applicazione per gli strumenti tecnici di Digital Video Service.</p>
               <dl>
-                <div><dt>Versione</dt><dd>v3.8</dd></div>
+                <div><dt>Versione</dt><dd>v3.9</dd></div>
                 <div><dt>Ideazione e sviluppo</dt><dd>Marco D'Agostino per Digital Video Service</dd></div>
                 <div><dt>Sincronizzazione</dt><dd>Supabase Database</dd></div>
               </dl>

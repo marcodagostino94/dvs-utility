@@ -2,7 +2,18 @@
 
 Web app/PWA indipendente per gli strumenti interni di Digital Video Service, coordinata graficamente con DVS Planning e DVS Gestionale.
 
-## Versione 3.8
+## Versione 3.9
+
+- archivio delle Schede Tecniche PDF ricevute direttamente dalla RAI;
+- caricamento singolo o multiplo di PDF fino a 50 MB ciascuno;
+- titolo personalizzabile prima dell’archiviazione e modificabile successivamente;
+- Storico Schede unificato con distinzione tra schede compilate nell’app e PDF RAI;
+- ricerca per titolo o nome del file;
+- apertura, download ed eliminazione dei PDF conservati nello Storage Supabase;
+- migrazione SQL `005` con tabella metadati, bucket privato, RLS e privilegi espliciti.
+
+- durata generale della puntata ricavata automaticamente dal Record TC dell’EDL;
+- la durata va dall’inizio della timeline all’ultimo Record OUT e non viene modificata dagli intervalli esclusi;
 
 - nuovo modulo DCP Puntate con rapporto unico Video + Audio;
 - selezione indipendente delle tracce video e musicali;
@@ -102,6 +113,10 @@ Per abilitare lo storico delle Schede Tecniche, eseguire una sola volta:
 Per abilitare lo Storico Puntate, eseguire una sola volta:
 
 `database/004_dcp_episode_history.sql`
+
+Per abilitare l’archivio dei PDF delle Schede Tecniche RAI, eseguire una sola volta:
+
+`database/005_technical_pdf_archive.sql`
 
 ## Avvio locale
 
