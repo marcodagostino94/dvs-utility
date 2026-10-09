@@ -484,7 +484,6 @@ async function deleteEpisode(item) {
 }
 
 async function pdfEpisode(item, button, card) {
-  if (!item.videoRows.some((row) => row.selected)) return toast("Seleziona almeno una clip video per il PDF");
   if (!await saveEpisode(item, button)) return;
   document.querySelectorAll(".episode-report-card.print-target").forEach((node) => node.classList.remove("print-target"));
   card.classList.add("print-target"); document.body.dataset.printMode = "episode-batch";
@@ -1257,7 +1256,15 @@ async function loadTechnicalHistory() {
   technicalHistoryItems = [
     ...(generated.data || []).map((item) => ({ ...item, kind: "generated" })),
     ...(uploaded.data || []).map((item) => ({ ...item, kind: "pdf" }))
-  ].sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at));
+  ].sort((a, b) => {
+    const byTitle = String(a.title || a.file_name || "").localeCompare(
+      String(b.title || b.file_name || ""),
+      "it",
+      { sensitivity: "base", numeric: true }
+    );
+    if (byTitle) return byTitle;
+    return String(a.file_name || "").localeCompare(String(b.file_name || ""), "it", { sensitivity: "base", numeric: true });
+  });
   renderTechnicalHistory();
   if (uploaded.error?.code === "42P01") toast("Esegui il file SQL 005 per abilitare l’archivio PDF RAI");
 }

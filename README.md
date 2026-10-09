@@ -2,7 +2,13 @@
 
 Web app/PWA indipendente per gli strumenti interni di Digital Video Service, coordinata graficamente con DVS Planning e DVS Gestionale.
 
-## Versione 3.9
+## Versione 4.0
+
+- Storico Schede Tecniche ordinato alfabeticamente per titolo, inclusi i PDF RAI caricati;
+- creazione del PDF DCP Puntata consentita anche senza selezionare clip video;
+- pacchetto di distribuzione ripulito dai file di test e dagli elementi non utilizzati dall'app.
+
+### Funzioni introdotte nella 3.9
 
 - archivio delle Schede Tecniche PDF ricevute direttamente dalla RAI;
 - caricamento singolo o multiplo di PDF fino a 50 MB ciascuno;
