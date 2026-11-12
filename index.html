@@ -11,6 +11,7 @@
     <link rel="icon" href="./assets/icons/dvs-utility-64.png" type="image/png" sizes="64x64" />
     <link rel="apple-touch-icon" href="./assets/icons/dvs-utility-180.png" sizes="180x180" />
     <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./folders.css" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="./config.js"></script>
     <title>DVS Utility</title>
@@ -26,7 +27,7 @@
 
         <nav class="desktop-nav" aria-label="Navigazione principale">
           <button class="nav-item active" id="openHomeNav">
-            <span class="nav-icon grid-icon" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+            <svg class="nav-icon dashboard-squares" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
             <span>Dashboard</span>
           </button>
           <button class="nav-item" id="openAudioNav">
@@ -60,7 +61,7 @@
             <span class="nav-icon info-icon" aria-hidden="true">i</span>
             <span>Informazioni</span>
           </button>
-          <span class="build-pill">v4.0</span>
+          <span class="build-pill">v4.1</span>
         </div>
       </aside>
 
@@ -489,7 +490,7 @@
               <h2>DVS Utility</h2>
               <p>Applicazione per gli strumenti tecnici di Digital Video Service.</p>
               <dl>
-                <div><dt>Versione</dt><dd>v4.0</dd></div>
+                <div><dt>Versione</dt><dd>v4.1</dd></div>
                 <div><dt>Ideazione e sviluppo</dt><dd>Marco D'Agostino per Digital Video Service</dd></div>
                 <div><dt>Sincronizzazione</dt><dd>Supabase Database</dd></div>
               </dl>

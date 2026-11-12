@@ -2,6 +2,7 @@ import { buildAudioReport, buildVideoReport, excludeEdlRanges, framesToTc, parse
 import { analyzeWav, loudnessLimits, normalizeWav, parseWav } from "./loudness.js";
 import { technicalDuration } from "./technical.js";
 import { filterHistoryItems } from "./history.js";
+import { loadFolders, archiveView, archiveRow, destination } from "./folders.js";
 
 const $ = (selector) => document.querySelector(selector);
 const views = {
@@ -226,6 +227,7 @@ async function saveBatchItem(item, button) {
   button.disabled = true;
   try {
     const payload = batchPayload(item);
+    if (!await destination(db, item.type, "dcp_audio_reports", item.savedId, payload)) return false;
     const result = item.savedId
       ? await db.from("dcp_audio_reports").update(payload).eq("id", item.savedId).select("id").single()
       : await db.from("dcp_audio_reports").insert(payload).select("id").single();
@@ -463,6 +465,7 @@ async function saveEpisode(item, button) {
   button.disabled = true;
   try {
     const payload = episodePayload(item);
+    if (!await destination(db, "episode", "dcp_audio_reports", item.savedId, payload)) return false;
     const result = item.savedId
       ? await db.from("dcp_audio_reports").update(payload).eq("id", item.savedId).select("id").single()
       : await db.from("dcp_audio_reports").insert(payload).select("id").single();
@@ -727,9 +730,11 @@ async function saveReport(type) {
   const button = isVideo ? $("#saveVideoButton") : $("#saveButton");
   button.disabled = true;
   try {
+    const payload = isVideo ? videoPayload() : audioPayload();
+    if (!await destination(db, isVideo ? "video" : "audio", "dcp_audio_reports", id, payload)) return false;
     const result = id
-      ? await db.from("dcp_audio_reports").update(isVideo ? videoPayload() : audioPayload()).eq("id", id).select("id").single()
-      : await db.from("dcp_audio_reports").insert(isVideo ? videoPayload() : audioPayload()).select("id").single();
+      ? await db.from("dcp_audio_reports").update(payload).eq("id", id).select("id").single()
+      : await db.from("dcp_audio_reports").insert(payload).select("id").single();
     if (result.error) throw result.error;
     if (isVideo) { currentVideoSavedId = result.data.id; updateVideoSaveButtons(); }
     else { currentAudioSavedId = result.data.id; updateAudioSaveButtons(); }
@@ -767,7 +772,8 @@ function formatDate(value) {
 
 function renderHistoryItems() {
   const list = $("#historyList");
-  const visible = filterHistoryItems(historyItems, historyOrigin, $("#historySearchInput").value);
+  const query = $("#historySearchInput").value.trim();
+  const visible = archiveView(db, historyOrigin, filterHistoryItems(historyItems, historyOrigin, query), list, query, renderHistoryItems);
   list.replaceChildren();
   visible.forEach((item) => {
     const type = ["audio", "video", "episode"].includes(item.report_type) ? item.report_type : "audio";
@@ -778,7 +784,7 @@ function renderHistoryItems() {
     const rowCount = type === "episode" ? ((item.rows?.audio?.length || 0) + (item.rows?.video?.length || 0)) : (Array.isArray(item.rows) ? item.rows.length : 0);
     button.querySelector("small").textContent = `${rowCount} righe · Aggiornato ${formatDate(item.updated_at)}`;
     button.querySelector("em").textContent = formatDate(item.created_at);
-    button.addEventListener("click", () => openSavedReport({ ...item, report_type: type })); list.append(button);
+    button.addEventListener("click", () => openSavedReport({ ...item, report_type: type })); list.append(archiveRow(historyOrigin, item, button, renderHistoryItems, query));
   });
   const typeLabel = historyOrigin === "episode" ? "Puntate" : historyOrigin === "video" ? "Video" : "Audio";
   $("#historyCount").textContent = `${visible.length} di ${historyItems.length} DCP ${typeLabel}`;
@@ -800,7 +806,8 @@ async function loadHistory(origin = "audio") {
   $("#historyCount").textContent = "";
   $("#emptyHistory").classList.add("hidden");
   if (!db) { list.innerHTML = '<div class="history-error">Database non configurato.</div>'; return; }
-  const { data, error } = await db.from("dcp_audio_reports").select("id,title,report_type,rows,created_at,updated_at").eq("report_type", origin).order("updated_at", { ascending: false });
+  try { await loadFolders(db, origin); } catch (error) { list.textContent = error.message; return; }
+  const { data, error } = await db.from("dcp_audio_reports").select("id,title,report_type,rows,created_at,updated_at,folder_id").eq("report_type", origin).order("title", { ascending: true });
   if (error) { list.innerHTML = `<div class="history-error">Storico non disponibile: ${error.code === "42703" ? "esegui la migrazione database della nuova versione" : error.message}</div>`; return; }
   historyItems = filterHistoryItems(data, origin); renderHistoryItems();
 }
@@ -1174,6 +1181,8 @@ async function saveTechnicalPdfs() {
   const button = $("#saveTechnicalPdfs"); button.disabled = true;
   let completed = 0;
   try {
+    const folderPayload = {};
+    if (!await destination(db, "technical", "technical_pdf_files", null, folderPayload)) return;
     for (const item of pendingTechnicalPdfFiles) {
       button.textContent = `Salvataggio ${completed + 1} di ${pendingTechnicalPdfFiles.length}…`;
       const today = new Date().toISOString().slice(0, 10);
@@ -1181,7 +1190,7 @@ async function saveTechnicalPdfs() {
       const storagePath = `${today}/${id}.pdf`;
       const upload = await db.storage.from(TECHNICAL_PDF_BUCKET).upload(storagePath, item.file, { contentType: "application/pdf", upsert: false });
       if (upload.error) throw upload.error;
-      const inserted = await db.from("technical_pdf_files").insert({ title: item.title.trim(), file_name: item.file.name, storage_path: storagePath, file_size: item.file.size, mime_type: "application/pdf" }).select("id").single();
+      const inserted = await db.from("technical_pdf_files").insert({ ...folderPayload, title: item.title.trim(), file_name: item.file.name, storage_path: storagePath, file_size: item.file.size, mime_type: "application/pdf" }).select("id").single();
       if (inserted.error) { await db.storage.from(TECHNICAL_PDF_BUCKET).remove([storagePath]); throw inserted.error; }
       completed += 1;
     }
@@ -1200,6 +1209,7 @@ async function saveTechnicalSheet() {
   const payload = { title: String(formData.title || "Scheda tecnica senza titolo"), sheet_data: formData };
   const button = $("#saveTechnicalButton"); button.disabled = true;
   try {
+    if (!await destination(db, "technical", "technical_sheets", currentTechnicalSavedId, payload)) return false;
     const result = currentTechnicalSavedId
       ? await db.from("technical_sheets").update(payload).eq("id", currentTechnicalSavedId).select("id").single()
       : await db.from("technical_sheets").insert(payload).select("id").single();
@@ -1213,8 +1223,8 @@ async function saveTechnicalSheet() {
 
 function renderTechnicalHistory() {
   const query = $("#technicalHistorySearchInput").value.trim().toLocaleLowerCase("it");
-  const visible = technicalHistoryItems.filter((item) => !query || item.title.toLocaleLowerCase("it").includes(query) || String(item.file_name || "").toLocaleLowerCase("it").includes(query));
   const list = $("#technicalHistoryList"); list.replaceChildren();
+  const visible = archiveView(db, "technical", technicalHistoryItems, list, query, renderTechnicalHistory).filter((item) => !query || item.title.toLocaleLowerCase("it").includes(query) || String(item.file_name || "").toLocaleLowerCase("it").includes(query));
   visible.forEach((item) => {
     const button = document.createElement("button"); button.type = "button"; button.className = `history-row${item.kind === "pdf" ? " technical-pdf-history-row" : ""}`;
     button.innerHTML = '<span class="history-row-icon"></span><span><strong></strong><small></small></span><em></em><b>›</b>';
@@ -1223,7 +1233,7 @@ function renderTechnicalHistory() {
     button.querySelector("small").textContent = item.kind === "pdf" ? `${item.file_name} · ${formatFileSize(item.file_size || 0)}` : `Aggiornata ${formatDate(item.updated_at)}`;
     button.querySelector("em").textContent = formatDate(item.updated_at || item.created_at);
     button.addEventListener("click", () => item.kind === "pdf" ? openStoredTechnicalPdfDetail(item) : openGeneratedTechnicalSheet(item));
-    list.append(button);
+    list.append(archiveRow("technical", item, button, renderTechnicalHistory, query));
   });
   $("#technicalHistoryCount").textContent = `${visible.length} di ${technicalHistoryItems.length} schede`;
   const empty = $("#emptyTechnicalHistory"); empty.textContent = technicalHistoryItems.length ? "Nessuna scheda corrisponde alla ricerca." : "Non ci sono ancora schede tecniche salvate."; empty.classList.toggle("hidden", visible.length > 0);
@@ -1247,9 +1257,10 @@ async function loadTechnicalHistory() {
   const list = $("#technicalHistoryList"); list.innerHTML = '<div class="history-loading">Caricamento storico…</div>';
   $("#technicalHistorySearchInput").value = ""; $("#technicalHistoryCount").textContent = ""; $("#emptyTechnicalHistory").classList.add("hidden");
   if (!db) { list.innerHTML = '<div class="history-error">Database non configurato.</div>'; return; }
+  try { await loadFolders(db, "technical"); } catch (error) { list.textContent = error.message; return; }
   const [generated, uploaded] = await Promise.all([
-    db.from("technical_sheets").select("id,title,sheet_data,created_at,updated_at"),
-    db.from("technical_pdf_files").select("id,title,file_name,storage_path,file_size,mime_type,created_at,updated_at")
+    db.from("technical_sheets").select("id,title,sheet_data,created_at,updated_at,folder_id"),
+    db.from("technical_pdf_files").select("id,title,file_name,storage_path,file_size,mime_type,created_at,updated_at,folder_id")
   ]);
   if (generated.error) { list.innerHTML = `<div class="history-error">Storico non disponibile: ${generated.error.code === "42P01" ? "esegui la migrazione SQL della Scheda Tecnica" : generated.error.message}</div>`; return; }
   if (uploaded.error && uploaded.error.code !== "42P01") { list.innerHTML = `<div class="history-error">Archivio PDF non disponibile: ${uploaded.error.message}</div>`; return; }

@@ -1,5 +1,19 @@
 # DVS Utility
 
+## Versione 4.1 — Cartelle negli storici
+
+Prima di pubblicare eseguire database/006_archive_folders.sql nel SQL Editor
+del progetto Utility, dopo le precedenti migrazioni. Non elimina dati.
+
+Cartelle per programma separate per Audio, Video, Puntate e Schede Tecniche,
+con riquadri grigi e alone verde, blu, rosa o giallo. I documenti esistenti
+rimangono in Senza cartella. Elenchi ordinati A–Z, ricerca trasversale,
+selezione multipla e Sposta selezionati. Rinominare o eliminare una cartella
+non elimina documenti: alla cancellazione tornano in Senza cartella.
+Salvataggi e PDF consentono di scegliere una destinazione facoltativa;
+per i documenti già archiviati viene preselezionata quella esistente.
+Dashboard con icona SVG a quattro quadratini.
+
 Web app/PWA indipendente per gli strumenti interni di Digital Video Service, coordinata graficamente con DVS Planning e DVS Gestionale.
 
 ## Versione 4.0
