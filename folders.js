@@ -30,6 +30,10 @@ export async function destination(db,scope,table,id,payload) {
 }
 export function archiveView(db,scope,items,list,query,render) {
  const s=state(scope);
+ const normalizedQuery=String(query||"").trim().toLocaleLowerCase("it");
+ const visible=items.filter(i=>normalizedQuery
+   ? String(i.title||"").toLocaleLowerCase("it").includes(normalizedQuery)||String(i.file_name||"").toLocaleLowerCase("it").includes(normalizedQuery)
+   : (i.folder_id||null)===s.current).sort(az);
  let panel=list.previousElementSibling;
  if(!panel?.classList.contains("archive-panel")){panel=el("div","archive-panel");list.before(panel);}
  panel.replaceChildren();
@@ -56,7 +60,15 @@ export function archiveView(db,scope,items,list,query,render) {
  s.folders.forEach(f=>{const b=el("button","archive-folder");b.type="button";b.append(el("strong","",f.name),el("small","",items.filter(i=>i.folder_id===f.id).length+" documenti"));b.onclick=()=>{s.current=f.id;s.selected.clear();render();};grid.append(b);});
  }
  panel.append(el("h3","archive-heading",query?"Risultati in tutte le cartelle":s.current?s.folders.find(f=>f.id===s.current)?.name:"Senza cartella"));
- return items.filter(i=>query||((i.folder_id||null)===s.current)).sort(az);
+ const selectionTools=el("div","archive-actions");
+ const selectAll=el("button","secondary-button","Seleziona tutto");
+ selectAll.type="button";selectAll.disabled=!visible.length;
+ selectAll.onclick=()=>{visible.forEach(i=>s.selected.add(i.kind+":"+i.id));render();};
+ const deselectAll=el("button","secondary-button","Deseleziona tutto");
+ deselectAll.type="button";deselectAll.disabled=!s.selected.size;
+ deselectAll.onclick=()=>{s.selected.clear();render();};
+ selectionTools.append(selectAll,deselectAll);panel.append(selectionTools);
+ return visible;
 }
 export function archiveRow(scope,item,button,render,query) {
  const s=state(scope);const wrap=el("div","archive-document");const check=el("input");check.type="checkbox";check.setAttribute("aria-label","Seleziona "+item.title);const key=item.kind+":"+item.id;check.checked=s.selected.has(key);

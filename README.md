@@ -1,5 +1,11 @@
 # DVS Utility
 
+## Versione 4.1.1
+
+Seleziona tutto e Deseleziona tutto nei quattro storici, sia in Senza cartella
+sia dentro le cartelle. Durante la ricerca si selezionano solo i risultati visibili.
+Nessun SQL aggiuntivo rispetto alla 4.1 (migrazione 006).
+
 ## Versione 4.1 — Cartelle negli storici
 
 Prima di pubblicare eseguire database/006_archive_folders.sql nel SQL Editor

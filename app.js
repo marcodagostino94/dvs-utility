@@ -773,7 +773,7 @@ function formatDate(value) {
 function renderHistoryItems() {
   const list = $("#historyList");
   const query = $("#historySearchInput").value.trim();
-  const visible = archiveView(db, historyOrigin, filterHistoryItems(historyItems, historyOrigin, query), list, query, renderHistoryItems);
+  const visible = archiveView(db, historyOrigin, filterHistoryItems(historyItems, historyOrigin), list, query, renderHistoryItems);
   list.replaceChildren();
   visible.forEach((item) => {
     const type = ["audio", "video", "episode"].includes(item.report_type) ? item.report_type : "audio";
