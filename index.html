@@ -12,11 +12,15 @@
     <link rel="apple-touch-icon" href="./assets/icons/dvs-utility-180.png" sizes="180x180" />
     <link rel="stylesheet" href="./styles.css" />
     <link rel="stylesheet" href="./folders.css" />
+    <link rel="stylesheet" href="./app-intro.css" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="./config.js"></script>
     <title>DVS Utility</title>
   </head>
   <body>
+    <div id="appIntro" class="app-intro" role="status" aria-label="Avvio DVS Utility"><div class="intro-brand"><div class="intro-logo"><img src="./assets/logos/digital-video-full.png" alt="" aria-hidden="true"></div><div class="intro-utility">UTILITY</div></div></div>
+    <script src="./app-intro.js" defer></script>
+    <noscript><style>.app-intro{display:none}</style></noscript>
     <div class="app-shell">
       <aside class="sidebar">
         <button class="brand" id="homeButton" aria-label="Apri Utility">
@@ -61,7 +65,7 @@
             <span class="nav-icon info-icon" aria-hidden="true">i</span>
             <span>Informazioni</span>
           </button>
-          <span class="build-pill">v4.1.1</span>
+          <span class="build-pill">v4.2</span>
         </div>
       </aside>
 
@@ -490,7 +494,7 @@
               <h2>DVS Utility</h2>
               <p>Applicazione per gli strumenti tecnici di Digital Video Service.</p>
               <dl>
-                <div><dt>Versione</dt><dd>v4.1.1</dd></div>
+                <div><dt>Versione</dt><dd>v4.2</dd></div>
                 <div><dt>Ideazione e sviluppo</dt><dd>Marco D'Agostino per Digital Video Service</dd></div>
                 <div><dt>Sincronizzazione</dt><dd>Supabase Database</dd></div>
               </dl>

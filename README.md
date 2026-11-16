@@ -1,5 +1,12 @@
 # DVS Utility
 
+## Versione 4.2 — Animazione apertura
+
+Stessa animazione di Planning 50.3 e Workspace 25.1: logo originale,
+comparsa progressiva, scritta UTILITY e bagliore verde #32d874.
+Tempi ed effetti invariati; supporto Riduci movimento.
+Nessuna nuova migrazione SQL rispetto alla versione 4.1.1.
+
 ## Versione 4.1.1
 
 Seleziona tutto e Deseleziona tutto nei quattro storici, sia in Senza cartella
