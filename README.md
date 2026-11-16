@@ -1,5 +1,10 @@
 # DVS Utility
 
+## Versione 4.5 — Allineamento titoli
+
+Baseline dei titoli allineata a I tuoi strumenti tramite un riferimento
+tipografico comune, senza modificarne le dimensioni. Nessun nuovo SQL.
+
 ## Versione 4.4 — Intestazioni compatte
 
 Rimosse le barre superiori duplicate. Titoli grandi e titoletti verdi
