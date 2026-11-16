@@ -62,7 +62,7 @@ function showView(name) {
   $("#iphoneVideoNav").classList.toggle("active", inVideo);
   $("#iphoneCalculatorNav").classList.toggle("active", name === "calculator");
   $(".iphone-bottom-nav").dataset.active = inVideo ? "2" : name === "calculator" ? "3" : inAudio ? "1" : "0";
-  $("#iphoneSectionTitle").textContent = name === "history" ? (historyOrigin === "episode" ? "STORICO PUNTATE" : "STORICO DCP") : name === "audio" ? "DCP AUDIO" : name === "video" ? "DCP VIDEO" : name === "episode" ? "DCP PUNTATE" : name === "calculator" ? "TIMECODE" : name === "loudness" ? "LOUDNESS" : name === "technical" ? "SCHEDA TECNICA" : name === "info" ? "INFORMAZIONI" : "UTILITY";
+  $("#iphoneSectionTitle").textContent = name === "history" ? (historyOrigin === "episode" ? "STORICO PUNTATE" : "STORICO DCP") : name === "audio" ? "DCP AUDIO" : name === "video" ? "DCP VIDEO" : name === "episode" ? "DCP PUNTATE" : name === "calculator" ? "TIMECODE" : name === "loudness" ? "LOUDNESS" : name === "technical" ? "SCHEDA TECNICA" : name === "info" ? "INFORMAZIONI" : "I TUOI STRUMENTI";
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 

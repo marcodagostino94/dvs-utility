@@ -1,5 +1,11 @@
 # DVS Utility
 
+## Versione 4.3 — Sfondo coordinato verde
+
+Sfondo scuro con alone verde uniforme in tutte le sezioni, intestazioni grigie
+con il solo nome pagina. Dashboard rinominata I tuoi strumenti nel menu.
+Pannelli operativi leggibili e PDF invariati. Nessun nuovo SQL.
+
 ## Versione 4.2 — Animazione apertura
 
 Stessa animazione di Planning 50.3 e Workspace 25.1: logo originale,

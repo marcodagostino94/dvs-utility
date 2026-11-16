@@ -12,6 +12,7 @@
     <link rel="apple-touch-icon" href="./assets/icons/dvs-utility-180.png" sizes="180x180" />
     <link rel="stylesheet" href="./styles.css" />
     <link rel="stylesheet" href="./folders.css" />
+    <link rel="stylesheet" href="./theme.css" />
     <link rel="stylesheet" href="./app-intro.css" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="./config.js"></script>
@@ -32,7 +33,7 @@
         <nav class="desktop-nav" aria-label="Navigazione principale">
           <button class="nav-item active" id="openHomeNav">
             <svg class="nav-icon dashboard-squares" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
-            <span>Dashboard</span>
+            <span>I tuoi strumenti</span>
           </button>
           <button class="nav-item" id="openAudioNav">
             <span class="nav-icon sound-icon" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
@@ -65,14 +66,14 @@
             <span class="nav-icon info-icon" aria-hidden="true">i</span>
             <span>Informazioni</span>
           </button>
-          <span class="build-pill">v4.2</span>
+          <span class="build-pill">v4.3</span>
         </div>
       </aside>
 
       <header class="iphone-topbar">
         <button class="iphone-brand" id="iphoneBrand" aria-label="Apri Utility">
           <img src="./assets/logos/digital-video-full.png" alt="Digital Video" />
-          <span id="iphoneSectionTitle">UTILITY</span>
+          <span id="iphoneSectionTitle">I TUOI STRUMENTI</span>
         </button>
       </header>
 
@@ -82,7 +83,7 @@
           <div class="ambient ambient-two"></div>
           <div class="dashboard-content">
             <div class="hero">
-              <p class="eyebrow">DVS UTILITY</p>
+              
               <h1>I tuoi strumenti</h1>
             </div>
 
@@ -147,7 +148,7 @@
         <section class="view audio-view" id="audioView">
           <header class="module-topbar">
             <button class="back-button hidden" id="backButton" aria-label="Torna a importazione e storico">‹</button>
-            <div><span>Utility</span><strong>DCP Audio</strong></div>
+            <div><strong>DCP Audio</strong></div>
           </header>
 
           <div class="module-content">
@@ -225,7 +226,7 @@
         <section class="view video-view" id="videoView">
           <header class="module-topbar">
             <button class="back-button hidden" id="videoBackButton" aria-label="Torna a importazione e storico">‹</button>
-            <div><span>Utility</span><strong>DCP Video</strong></div>
+            <div><strong>DCP Video</strong></div>
           </header>
           <div class="module-content">
             <div class="module-heading"><p class="eyebrow">RAPPORTO IMMAGINI</p><h1>DCP Video</h1></div>
@@ -277,7 +278,7 @@
         <section class="view episode-view" id="episodeView">
           <header class="module-topbar">
             <button class="back-button hidden" id="episodeBackButton" aria-label="Torna a importazione e storico">‹</button>
-            <div><span>Utility</span><strong>DCP Puntate</strong></div>
+            <div><strong>DCP Puntate</strong></div>
           </header>
           <div class="module-content">
             <div class="module-heading"><p class="eyebrow">RAPPORTO COMPLETO</p><h1>DCP Puntate</h1></div>
@@ -302,7 +303,7 @@
         </section>
 
         <section class="view calculator-view" id="calculatorView">
-          <header class="module-topbar"><div><span>Utility</span><strong>Calcolatrice Timecode</strong></div></header>
+          <header class="module-topbar"><div><strong>Calcolatrice Timecode</strong></div></header>
           <div class="module-content calculator-content">
             <div class="module-heading"><p class="eyebrow">TIMECODE</p><h1>Calcolatrice</h1></div>
             <section class="fps-panel panel"><span>Frame rate</span><div class="fps-selector" id="fpsSelector"><button data-fps="24">24</button><button class="active" data-fps="25">25</button><button data-fps="30">30</button><button data-fps="60">60</button></div><strong id="fpsLabel">25 fps</strong></section>
@@ -322,7 +323,7 @@
         </section>
 
         <section class="view loudness-view" id="loudnessView">
-          <header class="module-topbar"><div><span>Utility</span><strong>Loudness</strong></div></header>
+          <header class="module-topbar"><div><strong>Loudness</strong></div></header>
           <div class="module-content loudness-content">
             <div class="module-heading"><p class="eyebrow">CONTROLLO RAI</p><h1>Loudness</h1></div>
 
@@ -385,7 +386,7 @@
         </section>
 
         <section class="view technical-view" id="technicalView">
-          <header class="module-topbar"><button class="back-button hidden" id="technicalBackButton" aria-label="Torna a inserimento e storico">‹</button><div><span>Utility</span><strong>Scheda Tecnica</strong></div><span class="secure-label"><i></i> Database DVS</span></header>
+          <header class="module-topbar"><button class="back-button hidden" id="technicalBackButton" aria-label="Torna a inserimento e storico">‹</button><div><strong>Scheda Tecnica</strong></div><span class="secure-label"><i></i> Database DVS</span></header>
           <div class="module-content technical-content">
             <div class="module-heading"><p class="eyebrow">DOCUMENTO RAI</p><h1>Scheda Tecnica</h1></div>
             <div class="technical-entry-grid" id="technicalEntryGrid">
@@ -469,7 +470,7 @@
         <section class="view history-view" id="historyView">
           <header class="module-topbar">
             <button class="back-button" id="historyBackButton" aria-label="Torna indietro">‹</button>
-            <div><span>Utility</span><strong id="historyHeaderTitle">Storico DCP Audio</strong></div>
+            <div><strong id="historyHeaderTitle">Storico DCP Audio</strong></div>
             <span class="secure-label"><i></i> Database DVS</span>
           </header>
           <div class="module-content">
@@ -486,15 +487,15 @@
         </section>
 
         <section class="view info-view" id="infoView">
-          <header class="info-page-header"><h1>Informazioni</h1><span>DVS Utility</span></header>
+          <header class="info-page-header"><h1>Informazioni</h1></header>
           <div class="info-page-body">
-            <button class="info-back-button" id="infoBackButton" type="button">‹ Utility</button>
+            <button class="info-back-button" id="infoBackButton" type="button">‹ I tuoi strumenti</button>
             <section class="information-card">
               <img src="./assets/logos/digital-video-full.png" alt="Digital Video">
               <h2>DVS Utility</h2>
               <p>Applicazione per gli strumenti tecnici di Digital Video Service.</p>
               <dl>
-                <div><dt>Versione</dt><dd>v4.2</dd></div>
+                <div><dt>Versione</dt><dd>v4.3</dd></div>
                 <div><dt>Ideazione e sviluppo</dt><dd>Marco D'Agostino per Digital Video Service</dd></div>
                 <div><dt>Sincronizzazione</dt><dd>Supabase Database</dd></div>
               </dl>
@@ -506,7 +507,7 @@
 
       <nav class="iphone-bottom-nav" aria-label="Navigazione mobile">
         <span class="iphone-nav-indicator" id="iphoneNavIndicator"></span>
-        <button class="active" id="iphoneHomeNav"><span class="nav-icon grid-icon"><i></i><i></i><i></i><i></i></span><small>Utility</small></button>
+        <button class="active" id="iphoneHomeNav"><span class="nav-icon grid-icon"><i></i><i></i><i></i><i></i></span><small>Strumenti</small></button>
         <button id="iphoneAudioNav"><span class="nav-icon sound-icon"><i></i><i></i><i></i><i></i></span><small>DCP Audio</small></button>
         <button id="iphoneVideoNav"><span class="nav-icon video-outline"></span><small>DCP Video</small></button>
         <button id="iphoneCalculatorNav"><span class="nav-icon nav-svg-icon"><svg viewBox="0 0 24 24"><rect x="4" y="2.5" width="16" height="19" rx="2.5"/><rect x="7" y="5.5" width="10" height="4" rx="1"/><path d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01"/></svg></span><small>Timecode</small></button>

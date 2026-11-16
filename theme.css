@@ -1,0 +1,21 @@
+
+/* 4.3 — sfondo unico coordinato a Planning e Workspace, accento Utility. */
+@media screen {
+ html, body, .main-content {
+  background:radial-gradient(circle at 75% 15%,rgba(50,216,116,.12),transparent 30%),#0b0d11;
+  background-attachment:fixed;
+ }
+ .main-content > .view {
+  background:transparent;
+ }
+ .home-view::before, .home-view .ambient {display:none}
+ .brand-glow {background:rgba(50,216,116,.24)}
+ .module-topbar {background:rgba(238,240,242,.94);color:var(--text)}
+ .module-heading {color:#f5f5f7}
+ .module-heading .eyebrow {color:#64df95}
+ .module-heading > p:last-child {color:#aab3b9}
+ .panel {background:rgba(238,240,242,.94);color:var(--text)}
+ .calculator-panel {background:rgba(25,29,33,.96);color:#fff}
+ .info-page-header {background:#dfe1e4}
+}
+
