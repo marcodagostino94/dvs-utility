@@ -1,5 +1,11 @@
 # DVS Utility
 
+## Versione 4.4 — Intestazioni compatte
+
+Rimosse le barre superiori duplicate. Titoli grandi e titoletti verdi
+mantengono le dimensioni precedenti, con margine superiore ridotto.
+Frecce di navigazione conservate accanto al titolo. Nessun nuovo SQL.
+
 ## Versione 4.3 — Sfondo coordinato verde
 
 Sfondo scuro con alone verde uniforme in tutte le sezioni, intestazioni grigie

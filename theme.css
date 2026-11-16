@@ -17,5 +17,12 @@
  .panel {background:rgba(238,240,242,.94);color:var(--text)}
  .calculator-panel {background:rgba(25,29,33,.96);color:#fff}
  .info-page-header {background:#dfe1e4}
+ .module-content, .info-page-body {padding-top:26px}
+ .module-heading {position:relative}
+ .module-heading:has(> .back-button:not(.hidden)) {padding-left:52px}
+ .module-heading > .back-button {position:absolute;left:0;top:8px}
+ @media(max-width:760px){
+  .module-content, .info-page-body {padding-top:20px}
+ }
 }
 

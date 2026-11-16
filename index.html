@@ -66,7 +66,7 @@
             <span class="nav-icon info-icon" aria-hidden="true">i</span>
             <span>Informazioni</span>
           </button>
-          <span class="build-pill">v4.3</span>
+          <span class="build-pill">v4.4</span>
         </div>
       </aside>
 
@@ -146,13 +146,10 @@
         </section>
 
         <section class="view audio-view" id="audioView">
-          <header class="module-topbar">
-            <button class="back-button hidden" id="backButton" aria-label="Torna a importazione e storico">‹</button>
-            <div><strong>DCP Audio</strong></div>
-          </header>
+          
 
           <div class="module-content">
-            <div class="module-heading">
+            <div class="module-heading"><button class="back-button hidden" id="backButton" aria-label="Torna a importazione e storico">‹</button>
               <p class="eyebrow">RAPPORTO MUSICALE</p>
               <h1>DCP Audio</h1>
             </div>
@@ -224,12 +221,9 @@
         </section>
 
         <section class="view video-view" id="videoView">
-          <header class="module-topbar">
-            <button class="back-button hidden" id="videoBackButton" aria-label="Torna a importazione e storico">‹</button>
-            <div><strong>DCP Video</strong></div>
-          </header>
+          
           <div class="module-content">
-            <div class="module-heading"><p class="eyebrow">RAPPORTO IMMAGINI</p><h1>DCP Video</h1></div>
+            <div class="module-heading"><button class="back-button hidden" id="videoBackButton" aria-label="Torna a importazione e storico">‹</button><p class="eyebrow">RAPPORTO IMMAGINI</p><h1>DCP Video</h1></div>
             <div class="audio-entry-grid" id="videoEntryGrid">
               <section class="panel import-panel" id="videoDropZone">
                 <input id="videoFileInput" type="file" accept=".edl,.txt" multiple hidden />
@@ -276,12 +270,9 @@
         </section>
 
         <section class="view episode-view" id="episodeView">
-          <header class="module-topbar">
-            <button class="back-button hidden" id="episodeBackButton" aria-label="Torna a importazione e storico">‹</button>
-            <div><strong>DCP Puntate</strong></div>
-          </header>
+          
           <div class="module-content">
-            <div class="module-heading"><p class="eyebrow">RAPPORTO COMPLETO</p><h1>DCP Puntate</h1></div>
+            <div class="module-heading"><button class="back-button hidden" id="episodeBackButton" aria-label="Torna a importazione e storico">‹</button><p class="eyebrow">RAPPORTO COMPLETO</p><h1>DCP Puntate</h1></div>
             <div class="audio-entry-grid" id="episodeEntryGrid">
               <section class="panel import-panel episode-import" id="episodeDropZone">
                 <input id="episodeFileInput" type="file" accept=".edl,.txt" multiple hidden />
@@ -303,7 +294,7 @@
         </section>
 
         <section class="view calculator-view" id="calculatorView">
-          <header class="module-topbar"><div><strong>Calcolatrice Timecode</strong></div></header>
+          
           <div class="module-content calculator-content">
             <div class="module-heading"><p class="eyebrow">TIMECODE</p><h1>Calcolatrice</h1></div>
             <section class="fps-panel panel"><span>Frame rate</span><div class="fps-selector" id="fpsSelector"><button data-fps="24">24</button><button class="active" data-fps="25">25</button><button data-fps="30">30</button><button data-fps="60">60</button></div><strong id="fpsLabel">25 fps</strong></section>
@@ -323,7 +314,7 @@
         </section>
 
         <section class="view loudness-view" id="loudnessView">
-          <header class="module-topbar"><div><strong>Loudness</strong></div></header>
+          
           <div class="module-content loudness-content">
             <div class="module-heading"><p class="eyebrow">CONTROLLO RAI</p><h1>Loudness</h1></div>
 
@@ -386,9 +377,9 @@
         </section>
 
         <section class="view technical-view" id="technicalView">
-          <header class="module-topbar"><button class="back-button hidden" id="technicalBackButton" aria-label="Torna a inserimento e storico">‹</button><div><strong>Scheda Tecnica</strong></div><span class="secure-label"><i></i> Database DVS</span></header>
+          
           <div class="module-content technical-content">
-            <div class="module-heading"><p class="eyebrow">DOCUMENTO RAI</p><h1>Scheda Tecnica</h1></div>
+            <div class="module-heading"><button class="back-button hidden" id="technicalBackButton" aria-label="Torna a inserimento e storico">‹</button><p class="eyebrow">DOCUMENTO RAI</p><h1>Scheda Tecnica</h1></div>
             <div class="technical-entry-grid" id="technicalEntryGrid">
               <button class="panel technical-entry-card" id="newTechnicalButton" type="button"><span class="technical-entry-icon">＋</span><span><strong>Inserisci nuova scheda</strong><small>Compila un nuovo documento tecnico RAI</small></span><b>›</b></button>
               <button class="panel technical-entry-card technical-upload-entry" id="uploadTechnicalPdfButton" type="button"><span class="technical-entry-icon pdf-icon">PDF</span><span><strong>Archivia PDF RAI</strong><small>Carica una o più schede tecniche ricevute dalla RAI</small></span><b>›</b></button>
@@ -468,13 +459,9 @@
         </section>
 
         <section class="view history-view" id="historyView">
-          <header class="module-topbar">
-            <button class="back-button" id="historyBackButton" aria-label="Torna indietro">‹</button>
-            <div><strong id="historyHeaderTitle">Storico DCP Audio</strong></div>
-            <span class="secure-label"><i></i> Database DVS</span>
-          </header>
+          <span id="historyHeaderTitle" class="sr-only"></span>
           <div class="module-content">
-            <div class="module-heading history-heading">
+            <div class="module-heading history-heading"><button class="back-button" id="historyBackButton" aria-label="Torna indietro">‹</button>
               <p class="eyebrow">ARCHIVIO</p><h1 id="historyPageTitle">Storico DCP Audio</h1>
             </div>
             <section class="panel history-panel">
@@ -487,15 +474,16 @@
         </section>
 
         <section class="view info-view" id="infoView">
-          <header class="info-page-header"><h1>Informazioni</h1></header>
+          
           <div class="info-page-body">
+            <div class="module-heading"><p class="eyebrow">DVS</p><h1>Informazioni</h1></div>
             <button class="info-back-button" id="infoBackButton" type="button">‹ I tuoi strumenti</button>
             <section class="information-card">
               <img src="./assets/logos/digital-video-full.png" alt="Digital Video">
               <h2>DVS Utility</h2>
               <p>Applicazione per gli strumenti tecnici di Digital Video Service.</p>
               <dl>
-                <div><dt>Versione</dt><dd>v4.3</dd></div>
+                <div><dt>Versione</dt><dd>v4.4</dd></div>
                 <div><dt>Ideazione e sviluppo</dt><dd>Marco D'Agostino per Digital Video Service</dd></div>
                 <div><dt>Sincronizzazione</dt><dd>Supabase Database</dd></div>
               </dl>
