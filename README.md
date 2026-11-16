@@ -1,5 +1,11 @@
 # DVS Utility
 
+## Versione 4.5.1
+
+Correzione allineamento visivo titoli: margine sinistro comune alla dashboard
+e compensazione verticale di 4 px su desktop, senza variazioni delle dimensioni.
+Nessun nuovo SQL.
+
 ## Versione 4.5 — Allineamento titoli
 
 Baseline dei titoli allineata a I tuoi strumenti tramite un riferimento
