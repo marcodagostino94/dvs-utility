@@ -32,7 +32,7 @@
 
         <nav class="desktop-nav" aria-label="Navigazione principale">
           <button class="nav-item active" id="openHomeNav">
-            <svg class="nav-icon dashboard-squares" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+            <img class="nav-tool-art" src="./assets/tools/Strumenti.png" alt="" aria-hidden="true" />
             <span>I tuoi strumenti</span>
           </button>
           <button class="nav-item" id="openAudioNav">
@@ -63,10 +63,10 @@
 
         <div class="sidebar-bottom">
           <button class="nav-item information-nav" id="openInfoNav" type="button">
-            <span class="nav-icon info-icon" aria-hidden="true">i</span>
+            <img class="nav-tool-art" src="./assets/tools/Informazioni.png" alt="" aria-hidden="true" />
             <span>Informazioni</span>
           </button>
-          <span class="build-pill">v4.6.2</span>
+          <span class="build-pill">v4.6.3</span>
         </div>
       </aside>
 
@@ -465,7 +465,7 @@
               <h2>DVS Utility</h2>
               <p>Applicazione per gli strumenti tecnici di Digital Video Service.</p>
               <dl>
-                <div><dt>Versione</dt><dd>v4.6.2</dd></div>
+                <div><dt>Versione</dt><dd>v4.6.3</dd></div>
                 <div><dt>Ideazione e sviluppo</dt><dd>Marco D'Agostino per Digital Video Service</dd></div>
                 <div><dt>Sincronizzazione</dt><dd>Supabase Database</dd></div>
               </dl>
@@ -511,5 +511,6 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script type="module" src="./app.js"></script>
+    <script src="./app-update.js"></script>
   </body>
 </html>

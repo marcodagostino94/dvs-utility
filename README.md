@@ -204,3 +204,7 @@ Aprire `http://localhost:4173`.
 ## Pubblicazione GitHub Pages
 
 Il progetto è statico e non richiede build. È sufficiente pubblicare la radice del repository tramite GitHub Pages.
+# V4.6.3
+
+Icone originali Strumenti e Informazioni nella barra laterale. Controllo aggiornamenti all'apertura, al ritorno in primo piano e al ripristino della connessione; pulsante di ricaricamento esplicito per proteggere il lavoro aperto. Navigazione online non bloccata dalla vecchia pagina in cache; modalità offline mantenuta. Nessun nuovo SQL.
+

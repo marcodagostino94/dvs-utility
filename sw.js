@@ -1,4 +1,4 @@
-const CACHE = "dvs-utility-v4.6.2";
+const CACHE = "dvs-utility-v4.6.3";
 const ASSETS = [
   "./",
   "./index.html",
@@ -15,6 +15,9 @@ const ASSETS = [
   "./folders.css",
   "./folders.js",
   "./app.js",
+  "./app-update.js",
+  "./assets/tools/Strumenti.png",
+  "./assets/tools/Informazioni.png",
   "./config.js",
   "./parser.js",
   "./loudness.js",
@@ -32,16 +35,26 @@ const ASSETS = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)));
-  self.skipWaiting();
+  event.waitUntil(caches.open(CACHE).then(async (cache) => {
+    await cache.addAll(ASSETS.map((url) => new Request(url, {cache: "reload"})));
+    await self.skipWaiting();
+  }));
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)))));
-  self.clients.claim();
+  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key.startsWith("dvs-utility-") && key !== CACHE).map((key) => caches.delete(key)))).then(() => self.clients.claim()));
 });
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
+  if (event.request.mode === "navigate") {
+    event.respondWith(fetch(new Request(event.request, {cache: "no-cache"})).then((response) => {
+      if (!response.ok) throw new Error("Offline");
+      return response;
+    }).catch(() => caches.match(new URL("./index.html", self.registration.scope).href)));
+    return;
+  }
   event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request)));
 });
