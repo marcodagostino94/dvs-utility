@@ -1,5 +1,17 @@
 # DVS Utility
 
+## Versione 4.6.2 — Miniature nella barra laterale
+
+Le sei immagini originali della home sostituiscono le precedenti icone laterali,
+in miniatura da 30 px, senza alterarne la grafica. Quattro quadratini Strumenti
+e icona Informazioni invariati. Include i testi home abbassati della 4.6.1.
+Nessun nuovo SQL.
+
+## Versione 4.6.1
+
+Testi dei sei pulsanti abbassati di 8 px, mantenendo posizione a sinistra,
+dimensioni, immagini, colori e bagliori invariati. Nessun nuovo SQL.
+
 ## Versione 4.6 — Pulsanti con immagini
 
 Sei immagini originali fornite dall'utente, senza modifiche, nei pulsanti

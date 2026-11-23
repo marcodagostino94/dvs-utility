@@ -1,8 +1,10 @@
 
 /* 4.3 — sfondo unico coordinato a Planning e Workspace, accento Utility. */
 @media screen {
+ .desktop-nav .nav-item:has(.nav-tool-art) {gap:8px}
+ .desktop-nav .nav-tool-art {display:block;width:30px;height:30px;flex:0 0 30px;object-fit:contain;pointer-events:none}
  .utility-card {justify-content:flex-start}
- .utility-card .card-copy {max-width:52%;align-items:flex-start;text-align:left}
+ .utility-card .card-copy {max-width:52%;align-items:flex-start;text-align:left;top:8px}
  .utility-card .card-copy strong {line-height:1.12}
  .utility-card .tool-art {position:absolute;right:9px;bottom:11px;width:65%;height:78%;object-fit:contain;object-position:right bottom;pointer-events:none;filter:drop-shadow(0 0 15px rgba(var(--card-accent-rgb),.15));transition:transform .2s ease}
  .utility-card:hover .tool-art {transform:translateY(-3px)}

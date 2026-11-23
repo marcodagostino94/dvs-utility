@@ -1,4 +1,4 @@
-const CACHE = "dvs-utility-v4.6";
+const CACHE = "dvs-utility-v4.6.2";
 const ASSETS = [
   "./",
   "./index.html",
