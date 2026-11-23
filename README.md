@@ -1,5 +1,12 @@
 # DVS Utility
 
+## Versione 4.6 — Pulsanti con immagini
+
+Sei immagini originali fornite dall'utente, senza modifiche, nei pulsanti
+I tuoi strumenti. Titolo in alto a sinistra, immagine a destra e tenue alone
+coordinato; rimosso Disponibile. Colori, sfondi e funzioni invariati.
+Nessun nuovo SQL.
+
 ## Versione 4.5.1
 
 Correzione allineamento visivo titoli: margine sinistro comune alla dashboard

@@ -1,8 +1,14 @@
-const CACHE = "dvs-utility-v4.5.1";
+const CACHE = "dvs-utility-v4.6";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
+  "./assets/tools/01_Loudness.png",
+  "./assets/tools/02_Calcolatrice_Timecode.png",
+  "./assets/tools/04_DCP_Audio.png",
+  "./assets/tools/05_DCP_Video.png",
+  "./assets/tools/06_DCP_Puntate.png",
+  "./assets/tools/Scheda_Tecnica.png",
   "./theme.css",
   "./app-intro.css",
   "./app-intro.js",
