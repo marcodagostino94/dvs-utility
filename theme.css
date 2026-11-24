@@ -47,3 +47,10 @@
   .sidebar-bottom .nav-item:has(.nav-tool-art) { gap:8px; }
   .sidebar-bottom .nav-tool-art { display:block;width:30px;height:30px;flex:0 0 30px;object-fit:contain;pointer-events:none; }
 }
+@media screen {
+  html { touch-action: pan-x pan-y; }
+  body, button, a, input, select, textarea { touch-action: pan-x pan-y; }
+}
+@media screen and (max-width:760px) {
+  input, select, textarea { font-size: max(16px, 1em); }
+}

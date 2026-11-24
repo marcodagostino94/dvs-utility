@@ -208,3 +208,7 @@ Il progetto è statico e non richiede build. È sufficiente pubblicare la radice
 
 Icone originali Strumenti e Informazioni nella barra laterale. Controllo aggiornamenti all'apertura, al ritorno in primo piano e al ripristino della connessione; pulsante di ricaricamento esplicito per proteggere il lavoro aperto. Navigazione online non bloccata dalla vecchia pagina in cache; modalità offline mantenuta. Nessun nuovo SQL.
 
+# V5.0
+
+Blocco dello zoom accidentale da doppio tocco/clic, gesture pinch, Ctrl/Command + rotella e scorciatoie zoom gestibili dalla pagina. Scorrimento e clic normali mantenuti, selezione testo nei campi invariata. I comandi di accessibilità e zoom imposti dal browser/sistema possono prevalere sul blocco della pagina. Nessun nuovo SQL.
+
