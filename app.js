@@ -281,7 +281,7 @@ function buildBatchCard(item) {
     const result = makeElement("section", "batch-result");
     const resultHead = makeElement("div", "results-header");
     const titleArea = makeElement("div", "result-title-area"); titleArea.append(makeElement("p", "step-label", item.type === "video" ? "RAPPORTO IMMAGINI" : "RAPPORTO MUSICALE"));
-    const titleInput = document.createElement("input"); titleInput.className = "report-title-input"; titleInput.value = item.title; titleInput.ariaLabel = "Titolo DCP"; titleInput.addEventListener("input", () => { item.title = titleInput.value; });
+    const titleInput = document.createElement("textarea"); titleInput.rows = 1; titleInput.className = "report-title-input"; titleInput.value = item.title; titleInput.ariaLabel = "Titolo DCP"; titleInput.addEventListener("input", () => { item.title = titleInput.value; });
     const summary = makeElement("p", "muted"); titleArea.append(titleInput, summary);
     const actions = makeElement("div", "result-actions batch-actions");
     const save = makeElement("button", "save-button", item.savedId ? "Aggiorna DCP" : "Salva DCP"); save.type = "button"; save.addEventListener("click", () => saveBatchItem(item, save));
@@ -534,7 +534,7 @@ function buildEpisodeCard(item) {
   if (!item.generated) return card;
   const results = makeElement("section", "episode-results");
   const header = makeElement("div", "results-header episode-results-header"); const titleArea = makeElement("div", "result-title-area"); titleArea.append(makeElement("p", "step-label", "DCP PUNTATA"));
-  const title = document.createElement("input"); title.className = "report-title-input"; title.value = item.title; title.addEventListener("input", () => { item.title = title.value; });
+  const title = document.createElement("textarea"); title.rows = 1; title.className = "report-title-input"; title.value = item.title; title.ariaLabel = "Titolo DCP Puntata"; title.addEventListener("input", () => { item.title = title.value; });
   const finalDuration = makeElement("strong", "episode-final-duration", `DURATA PUNTATA ${duration.original}`);
   titleArea.append(title, finalDuration, makeElement("p", "muted", "Documento unico con immagini e musiche"));
   const actions = makeElement("div", "result-actions episode-actions"); const save = makeElement("button", "save-button", item.savedId ? "Aggiorna puntata" : "Salva puntata"); save.type = "button"; save.addEventListener("click", () => saveEpisode(item, save)); actions.append(save);
