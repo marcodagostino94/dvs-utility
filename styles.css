@@ -533,7 +533,18 @@ td.duration-column { color: #252b31; font-weight: 780; font-variant-numeric: tab
   .track-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
+.print-report-title { display: none; }
 @media print {
+  .report-title-input, .toast { display: none !important; }
+  .print-report-title {
+    display: block !important;
+    width: 100%; max-width: 100%; min-width: 0;
+    height: auto; max-height: none; overflow: visible;
+    white-space: pre-wrap; overflow-wrap: anywhere;
+    font-size: 21px; font-weight: 760; letter-spacing: -.025em;
+    line-height: 1.25; margin: 5px 0;
+  }
+  .result-title-area { min-width: 0; width: 100%; }
   @page { size: A4 portrait; margin: 8mm; }
   html, body, .app-shell, .audio-view, .video-view, .episode-view { background: #fff; }
   .sidebar, .iphone-topbar, .iphone-bottom-nav, .module-topbar, .module-heading, .file-summary, .two-column, .result-actions, .action-column, .audio-entry-grid, .video-filter-bar, #videoControls, #videoFileSummary, .select-column { display: none !important; }
